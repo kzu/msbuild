@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package>
+    <metadata>
+        <id>MSBuild</id>
+        <version>0.1.3</version>
+        <title>MSBuild: Microsoft Build Engine for Windows and Unix</title>
+        <authors>Microsoft</authors>
+        <licenseUrl>https://github.com/Microsoft/msbuild/blob/master/LICENSE</licenseUrl>
+        <projectUrl>https://github.com/Microsoft/msbuild/</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Provides the open source MSBuild project as a NuGet package.</description>
+        <copyright>Copyright 2015</copyright>
+        <tags>microsoft msbuild windows unix mac</tags>
+    </metadata>
+	<files>
+		<!--Unix-->
+		<file src="..\bin\Unix\Debug-MONO\*.*" target="tools\Unix" />
+
+		<!--Windows-->
+		<file src="..\bin\Windows_NT\Debug\*.*" target="tools\Windows" />
+	</files>    
+</package>
