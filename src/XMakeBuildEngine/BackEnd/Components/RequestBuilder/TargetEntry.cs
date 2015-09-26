@@ -13,7 +13,9 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Build.Collections;
+#if FEATURE_MSBUILD_DEBUGGER
 using Microsoft.Build.Debugging;
+#endif
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Shared;
@@ -483,7 +485,7 @@ namespace Microsoft.Build.BackEnd
                                 // Now aggregate the result with the existing known results.  There are four rules, assuming the target was not 
                                 // skipped due to being up-to-date:
                                 // 1. If this bucket failed or was cancelled, the aggregate result is failure.
-                                // 2. If this bucket succeded and we have not previously failed, the aggregate result is a success.
+                                // 2. If this bucket Succeeded and we have not previously failed, the aggregate result is a success.
                                 // 3. Otherwise, the bucket was skipped, which has no effect on the aggregate result.
                                 // 4. If the bucket's action code says to stop, then we stop, regardless of the success or failure state.
                                 if (dependencyResult != DependencyAnalysisResult.SkipUpToDate)
@@ -662,7 +664,6 @@ namespace Microsoft.Build.BackEnd
                 DataCollection.CommentMarkProfile(8801, endTargetBuild);
             }
 #endif
-            return;
         }
 
         /// <summary>
@@ -792,19 +793,22 @@ namespace Microsoft.Build.BackEnd
                 {
                     ProjectTargetInstanceChild targetChildInstance = _target.Children[currentTask];
 
+#if FEATURE_MSBUILD_DEBUGGER
                     if (DebuggerManager.DebuggingEnabled)
                     {
                         DebuggerManager.EnterState(targetChildInstance.Location, lookupForExecution.GlobalsForDebugging /* does not matter which lookup we get this from */);
                     }
+#endif
 
                     // Execute the task.
                     lastResult = await taskBuilder.ExecuteTask(targetLoggingContext, _requestEntry, _targetBuilderCallback, targetChildInstance, mode, lookupForInference, lookupForExecution, _cancellationToken);
 
+#if FEATURE_MSBUILD_DEBUGGER
                     if (DebuggerManager.DebuggingEnabled)
                     {
                         DebuggerManager.LeaveState(targetChildInstance.Location);
                     }
-
+#endif
                     if (lastResult.ResultCode == WorkUnitResultCode.Failed)
                     {
                         aggregatedTaskResult = WorkUnitResultCode.Failed;

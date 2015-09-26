@@ -1,8 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //-----------------------------------------------------------------------
-// <copyright file="ProjectTaskOutputItemInstance_Tests.cs" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
 // </copyright>
 // <summary>Tests for the ProjectTaskOutputItemInstance class.</summary>
 //-----------------------------------------------------------------------
@@ -12,28 +10,26 @@ using System.Xml;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
-
-using NUnit.Framework;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests.OM.Instance
 {
     /// <summary>
     /// Tests for the ProjectTaskOutputItemInstance class.
     /// </summary>
-    [TestFixture]
     public class ProjectTaskOutputItemInstance_Tests
     {
         /// <summary>
         /// Test accessors
         /// </summary>
-        [Test]
+        [Fact]
         public void Accessors()
         {
             var output = GetSampleTaskOutputInstance();
 
-            Assert.AreEqual("p", output.TaskParameter);
-            Assert.AreEqual("c", output.Condition);
-            Assert.AreEqual("i", output.ItemType);
+            Assert.Equal("p", output.TaskParameter);
+            Assert.Equal("c", output.Condition);
+            Assert.Equal("i", output.ItemType);
         }
 
         /// <summary>

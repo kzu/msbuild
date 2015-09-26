@@ -1,6 +1,23 @@
 ﻿<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\dir.targets" />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
+  <PropertyGroup>
+    <CopyNuGetImplementations Condition="'$(IsTestProject)' == 'true'">true</CopyNuGetImplementations>
+  </PropertyGroup>
+  
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" Condition="'$(NetCoreBuild)' != 'true'"/>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" Condition="'$(NetCoreBuild)' == 'true'"/>
+
+  <PropertyGroup Condition="'$(NetCoreBuild)' == 'true'">
+    <NuGetTargetMoniker>DNXCore,Version=v5.0</NuGetTargetMoniker>
+  </PropertyGroup>
+
+  <!-- OSS sign assemblies after compile runs. -->
+  <Import Project="$(ToolsDir)\sign.targets" />
+
+  <!-- Use NuSpec.ReferenceGenerator to create / update the .NET Core dependencies of the packages -->
+  <Import Project="$(NuSpecReferenceGeneratorDir)\NuSpec.ReferenceGenerator.targets"/>
+
   <!-- Restore packages -->
   <PropertyGroup>
     <PackagesConfig Condition="Exists('$(MSBuildProjectDirectory)\packages.config')">$([System.IO.Path]::Combine($(MSBuildProjectDirectory), 'packages.config'))</PackagesConfig>
@@ -8,7 +25,7 @@
     <RestorePackagesSemaphore>$(PackagesDir)$(MSBuildProjectFile).package.restored</RestorePackagesSemaphore>
   </PropertyGroup>
 
-  <Target Name="RestorePackages" 
+  <Target Name="RestorePackages"
           Inputs="$(PackagesConfig)"
           Outputs="$(RestorePackagesSemaphore)"
           Condition="'$(RestorePackages)' == 'true'">
@@ -19,4 +36,21 @@
     <Exec Command="$(NugetRestoreCommand) &quot;$(PackagesConfig)&quot;" />
     <Touch Files="$(RestorePackagesSemaphore)" AlwaysCreate="true" />
   </Target>
+
+  <!-- Debugging support -->
+  <PropertyGroup Condition="'$(NetCoreBuild)' == 'true'">
+    <DebugEngines>{2E36F1D4-B23C-435D-AB41-18E608940038}</DebugEngines>
+    <TestHost Condition="'$(OS)' == 'Windows_NT'">CoreRun.exe</TestHost>
+    <TestHost Condition="'$(OS)' != 'Windows_NT'">corerun</TestHost>
+    <StartProgram Condition="'$(StartProgram)'==''">$(OutputPath)\$(TestHost)</StartProgram>
+    <StartArguments>msbuild.exe</StartArguments>
+  </PropertyGroup>
+
+
+  <PropertyGroup Condition="'$(NetCoreBuild)' == 'true' And '$(IsTestProject)'=='true'">
+    <StartArguments>xunit.console.netcore.exe $(TargetFileName)</StartArguments>
+    <StartAction>Program</StartAction>
+  </PropertyGroup>
+  
+  
 </Project>

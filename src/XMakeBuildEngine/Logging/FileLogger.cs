@@ -80,7 +80,7 @@ namespace Microsoft.Build.Logging
 
             try
             {
-                _fileWriter = new StreamWriter(_logFileName, _append, _encoding);
+                _fileWriter = FileUtilities.OpenWrite(_logFileName, _append, _encoding);
 
                 _fileWriter.AutoFlush = _autoFlush;
             }
@@ -93,7 +93,7 @@ namespace Microsoft.Build.Logging
                 string message = ResourceUtilities.FormatResourceString(out errorCode, out helpKeyword, "InvalidFileLoggerFile", _logFileName, e.Message);
                 if (_fileWriter != null)
                 {
-                    _fileWriter.Close();
+                    _fileWriter.Dispose();
                 }
                 throw new LoggerException(message, e.InnerException, errorCode, helpKeyword);
             }
@@ -126,7 +126,7 @@ namespace Microsoft.Build.Logging
                 string message = ResourceUtilities.FormatResourceString(out errorCode, out helpKeyword, "InvalidFileLoggerFile", _logFileName, ex.Message);
                 if (_fileWriter != null)
                 {
-                    _fileWriter.Close();
+                    _fileWriter.Dispose();
                 }
                 throw new LoggerException(message, ex.InnerException, errorCode, helpKeyword);
             }
@@ -146,7 +146,7 @@ namespace Microsoft.Build.Logging
                 // Keep FxCop happy by closing in a Finally.
                 if (_fileWriter != null)
                 {
-                    _fileWriter.Close();
+                    _fileWriter.Dispose();
                 }
             }
         }
@@ -245,7 +245,7 @@ namespace Microsoft.Build.Logging
         /// <summary>
         /// Encoding for the output. Defaults to ANSI.
         /// </summary>
-        private Encoding _encoding = Encoding.Default;
+        private Encoding _encoding = Encoding.GetEncoding(0);
 
         /// <summary>
         /// File logger parameters delimiters.

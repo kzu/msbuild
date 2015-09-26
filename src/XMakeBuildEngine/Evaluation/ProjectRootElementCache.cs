@@ -20,7 +20,9 @@ using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Build.BackEnd;
 
+#if FEATURE_APPDOMAIN
 using OutOfProcNode = Microsoft.Build.Execution.OutOfProcNode;
+#endif
 
 namespace Microsoft.Build.Evaluation
 {
@@ -227,10 +229,12 @@ namespace Microsoft.Build.Evaluation
                             // use: it checks the file content as well as the timestamp. That's better than completely disabling
                             // the cache as we get test coverage of the rest of the cache code.
                             XmlDocument document = new XmlDocument();
-                            using (XmlTextReader xtr = new XmlTextReader(projectRootElement.FullPath))
+
+                            XmlReaderSettings xmlReaderSettings = new XmlReaderSettings();
+                            xmlReaderSettings.DtdProcessing = DtdProcessing.Ignore;
+                            using (XmlReader xr = XmlReader.Create(File.OpenRead(projectRootElement.FullPath), xmlReaderSettings))
                             {
-                                xtr.DtdProcessing = DtdProcessing.Ignore;
-                                document.Load(xtr);
+                                document.Load(xr);
                             }
 
                             string diskContent = document.OuterXml;
@@ -608,7 +612,11 @@ namespace Microsoft.Build.Evaluation
         {
             if (s_debugLogCacheActivity)
             {
+#if FEATURE_APPDOMAIN
                 string prefix = OutOfProcNode.IsOutOfProcNode ? "C" : "P";
+#else
+                string prefix = "P";
+#endif
                 Trace.WriteLine(prefix + " " + Process.GetCurrentProcess().Id + " | " + message + param1);
             }
         }

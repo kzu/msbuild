@@ -1,23 +1,24 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
 using System.IO;
+#if FEATURE_BINARY_SERIALIZATION
 using System.Runtime.Serialization.Formatters.Binary;
-
+#endif
 using Microsoft.Build.Exceptions;
-
-using NUnit.Framework;
+using System.Text.RegularExpressions;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
-    [TestFixture]
     public class InvalidProjectFileExceptionTests
     {
+#if FEATURE_BINARY_SERIALIZATION
         /// <summary>
         /// Verify I implemented ISerializable correctly
         /// </summary>
-        [Test]
+        [Fact]
         public void SerializeDeserialize()
         {
             InvalidProjectFileException e = new InvalidProjectFileException(
@@ -37,23 +38,24 @@ namespace Microsoft.Build.UnitTests
 
                 InvalidProjectFileException e2 = (InvalidProjectFileException)frm.Deserialize(memstr);
 
-                Assert.AreEqual(e.ColumnNumber, e2.ColumnNumber);
-                Assert.AreEqual(e.EndColumnNumber, e2.EndColumnNumber);
-                Assert.AreEqual(e.EndLineNumber, e2.EndLineNumber);
-                Assert.AreEqual(e.ErrorCode, e2.ErrorCode);
-                Assert.AreEqual(e.ErrorSubcategory, e2.ErrorSubcategory);
-                Assert.AreEqual(e.HasBeenLogged, e2.HasBeenLogged);
-                Assert.AreEqual(e.HelpKeyword, e2.HelpKeyword);
-                Assert.AreEqual(e.LineNumber, e2.LineNumber);
-                Assert.AreEqual(e.Message, e2.Message);
-                Assert.AreEqual(e.ProjectFile, e2.ProjectFile);
+                Assert.Equal(e.ColumnNumber, e2.ColumnNumber);
+                Assert.Equal(e.EndColumnNumber, e2.EndColumnNumber);
+                Assert.Equal(e.EndLineNumber, e2.EndLineNumber);
+                Assert.Equal(e.ErrorCode, e2.ErrorCode);
+                Assert.Equal(e.ErrorSubcategory, e2.ErrorSubcategory);
+                Assert.Equal(e.HasBeenLogged, e2.HasBeenLogged);
+                Assert.Equal(e.HelpKeyword, e2.HelpKeyword);
+                Assert.Equal(e.LineNumber, e2.LineNumber);
+                Assert.Equal(e.Message, e2.Message);
+                Assert.Equal(e.ProjectFile, e2.ProjectFile);
             }
         }
+#endif
 
         /// <summary>
         /// Verify that nesting an IPFE copies the error code
         /// </summary>
-        [Test]
+        [Fact]
         public void ErrorCodeShouldAppearForCircularDependency()
         {
             string file = Path.GetTempPath() + Guid.NewGuid().ToString("N");

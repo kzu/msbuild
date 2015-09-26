@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
    <!--
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" Condition="!$(Configuration.EndsWith('MONO'))"/>
@@ -11,6 +11,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Microsoft.Build.Engine.UnitTests</RootNamespace>
     <AssemblyName>Microsoft.Build.Engine.UnitTests</AssemblyName>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <!-- Default configurations to help VS understand the configurations -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -139,8 +140,8 @@
     <Compile Include="Definition\ItemDefinitionGroup_Tests.cs" />
     <Compile Include="Definition\ProjectHelpers.cs" />
     <Compile Include="Definition\ProjectItem_Tests.cs" />
-    <Compile Include="Definition\ToolsetConfigurationReader_Tests.cs" />
-    <Compile Include="Definition\ToolsetConfigurationReaderTestHelper.cs" />
+    <Compile Include="Definition\ToolsetConfigurationReader_Tests.cs" Condition="$(FeatureSystemConfiguration) == 'true'" />
+    <Compile Include="Definition\ToolsetConfigurationReaderTestHelper.cs" Condition="$(FeatureSystemConfiguration) == 'true'" />
     <Compile Include="Definition\ToolsetReader_Tests.cs" />
     <Compile Include="Definition\ToolsetRegistryReader_Tests.cs" />
     <Compile Include="Definition\Toolset_Tests.cs" />
@@ -185,7 +186,10 @@
       <Link>Microsoft.Common.tasks</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="packages.config" />
+    <None Include="project.json" />
+  </ItemGroup>
+  <ItemGroup Condition="$(TargetFrameworkIdentifier) != '.NETFramework'">
+    <Compile Include="Compat\TempFileCollection.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Utilities\Microsoft.Build.Utilities.csproj">
@@ -204,6 +208,10 @@
       <HintPath>$(PackagesDir)NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Microsoft.Build.Tasks.CodeAnalysis, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(CompilerToolsDir)\Microsoft.Build.Tasks.CodeAnalysis.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Xml" />
@@ -211,9 +219,7 @@
       <Project>{23c9fd0e-70c5-4f1f-b08a-d2774240fb51}</Project>
       <Name>MSBuild</Name>
     </ProjectReference>
-    <!-- If TargetRetailBuildFramework is set to true, reference the public key version. Otherwise reference the project. -->
-    <Reference Condition=" '$(TargetRetailBuildFramework)' == 'true' " Include="Microsoft.Build.Framework, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
-    <ProjectReference Condition=" '$(TargetRetailBuildFramework)' != 'true' " Include="..\..\Framework\Microsoft.Build.Framework.csproj">
+    <ProjectReference Include="..\..\Framework\Microsoft.Build.Framework.csproj">
       <Project>{571F09DB-A81A-4444-945C-6F7B530054CD}</Project>
       <Name>Microsoft.Build.Framework</Name>
     </ProjectReference>

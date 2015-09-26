@@ -203,12 +203,14 @@ namespace Microsoft.Build.BackEnd
                     }
                 }
             }
+#if FEATURE_VARIOUS_EXCEPTIONS
             catch (ThreadAbortException)
             {
                 // Do nothing.  This will happen when the thread is forcibly terminated because we are shutting down, for example
                 // when the unit test framework terminates.
                 throw;
             }
+#endif
             catch (Exception e)
             {
                 // Dump all engine exceptions to a temp file
@@ -493,8 +495,13 @@ namespace Microsoft.Build.BackEnd
         private void HandleNodeConfiguration(NodeConfiguration configuration)
         {
             // Set the culture.
+#if FEATURE_CULTUREINFO_SETTERS
+            CultureInfo.CurrentCulture = configuration.BuildParameters.Culture;
+            CultureInfo.CurrentUICulture = configuration.BuildParameters.UICulture;
+#else
             Thread.CurrentThread.CurrentCulture = configuration.BuildParameters.Culture;
             Thread.CurrentThread.CurrentUICulture = configuration.BuildParameters.UICulture;
+#endif
 
             // Snapshot the initial environment.
             _savedEnvironment = CommunicationsUtilities.GetEnvironmentVariables();
@@ -506,8 +513,10 @@ namespace Microsoft.Build.BackEnd
             _componentHost.BuildParameters.NodeId = configuration.NodeId;
             _shutdownException = null;
 
+#if FEATURE_APPDOMAIN
             // And the AppDomainSetup
             _componentHost.BuildParameters.AppDomainSetup = configuration.AppDomainSetup;
+#endif
 
             // Declare in-proc
             _componentHost.BuildParameters.IsOutOfProc = false;

@@ -19,7 +19,10 @@ using Microsoft.Build.Shared;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Threading.Tasks;
+#if FEATURE_SECURITY_PERMISSIONS
 using System.Security.Permissions;
+#endif
 
 namespace Microsoft.Build.BackEnd
 {
@@ -244,7 +247,7 @@ namespace Microsoft.Build.BackEnd
         {
             if (null != OnLinkStatusChanged)
             {
-                LinkStatusChangedDelegate linkStatusDelegate = (LinkStatusChangedDelegate)OnLinkStatusChanged.Clone();
+                LinkStatusChangedDelegate linkStatusDelegate = OnLinkStatusChanged;
                 linkStatusDelegate(this, newStatus);
             }
         }
@@ -260,8 +263,8 @@ namespace Microsoft.Build.BackEnd
             ErrorUtilities.VerifyThrow(_packetPump.ManagedThreadId != Thread.CurrentThread.ManagedThreadId, "Can't join on the same thread.");
             _terminatePacketPump.Set();
             _packetPump.Join();
-            _terminatePacketPump.Close();
-            _pipeServer.Close();
+            _terminatePacketPump.Dispose();
+            _pipeServer.Dispose();
             _packetPump = null;
             ChangeLinkStatus(LinkStatus.Inactive);
         }
@@ -328,10 +331,18 @@ namespace Microsoft.Build.BackEnd
                 try
                 {
                     // Wait for a connection
+#if FEATURE_APM
                     IAsyncResult resultForConnection = localPipeServer.BeginWaitForConnection(null, null);
+#else
+                    Task connectionTask = localPipeServer.WaitForConnectionAsync();
+#endif
                     CommunicationsUtilities.Trace("Waiting for connection {0} ms...", waitTimeRemaining);
 
+#if FEATURE_APM
                     bool connected = resultForConnection.AsyncWaitHandle.WaitOne(waitTimeRemaining, false);
+#else
+                    bool connected = connectionTask.Wait(waitTimeRemaining);
+#endif
                     if (!connected)
                     {
                         CommunicationsUtilities.Trace("Connection timed out waiting a host to contact us.  Exiting comm thread.");
@@ -340,7 +351,9 @@ namespace Microsoft.Build.BackEnd
                     }
 
                     CommunicationsUtilities.Trace("Parent started connecting. Reading handshake from parent");
+#if FEATURE_APM
                     localPipeServer.EndWaitForConnection(resultForConnection);
+#endif
 
                     // The handshake protocol is a simple long exchange.  The host sends us a long, and we
                     // respond with another long.  Once the handshake is complete, both sides can be assured the
@@ -389,7 +402,7 @@ namespace Microsoft.Build.BackEnd
                     catch (IOException e)
                     {
                         // We will get here when:
-                        // 1. The host (OOP main node) connects to us, it immediately checks for user priviledges
+                        // 1. The host (OOP main node) connects to us, it immediately checks for user privileges
                         //    and if they don't match it disconnects immediately leaving us still trying to read the blank handshake
                         // 2. The host is too old sending us bits we automatically reject in the handshake
                         CommunicationsUtilities.Trace("Client connection failed but we will wait for another connection. Exception: {0}", e.Message);
@@ -432,14 +445,24 @@ namespace Microsoft.Build.BackEnd
             // spammed to the endpoint and it never gets an opportunity to shutdown.
             CommunicationsUtilities.Trace("Entering read loop.");
             byte[] headerByte = new byte[5];
+#if FEATURE_APM
             IAsyncResult result = localPipeServer.BeginRead(headerByte, 0, headerByte.Length, null, null);
+#else
+            Task<int> readTask = localPipeServer.ReadAsync(headerByte, 0, headerByte.Length);
+#endif
 
             bool exitLoop = false;
             do
             {
                 // Ordering is important.  We want packetAvailable to supercede terminate otherwise we will not properly wait for all
                 // packets to be sent by other threads which are shutting down, such as the logging thread.
-                WaitHandle[] handles = new WaitHandle[] { result.AsyncWaitHandle, localPacketAvailable, localTerminatePacketPump };
+                WaitHandle[] handles = new WaitHandle[] {
+#if FEATURE_APM
+                    result.AsyncWaitHandle,
+#else
+                    ((IAsyncResult)readTask).AsyncWaitHandle,
+#endif
+                    localPacketAvailable, localTerminatePacketPump };
 
                 int waitId = WaitHandle.WaitAny(handles);
                 switch (waitId)
@@ -449,7 +472,11 @@ namespace Microsoft.Build.BackEnd
                             int bytesRead = 0;
                             try
                             {
+#if FEATURE_APM
                                 bytesRead = localPipeServer.EndRead(result);
+#else
+                                bytesRead = readTask.Result;
+#endif
                             }
                             catch (Exception e)
                             {
@@ -495,7 +522,11 @@ namespace Microsoft.Build.BackEnd
                                 break;
                             }
 
+#if FEATURE_APM
                             result = localPipeServer.BeginRead(headerByte, 0, headerByte.Length, null, null);
+#else
+                            readTask = localPipeServer.ReadAsync(headerByte, 0, headerByte.Length);
+#endif
                         }
 
                         break;
@@ -530,7 +561,19 @@ namespace Microsoft.Build.BackEnd
                                 packetStream.Position = 1;
                                 packetStream.Write(BitConverter.GetBytes((int)packetStream.Length - 5), 0, 4);
 
+#if FEATURE_MEMORYSTREAM_GETBUFFER
                                 localPipeServer.Write(packetStream.GetBuffer(), 0, (int)packetStream.Length);
+#else
+                                ArraySegment<byte> packetStreamBuffer;
+                                if (packetStream.TryGetBuffer(out packetStreamBuffer))
+                                {
+                                    localPipeServer.Write(packetStreamBuffer.Array, packetStreamBuffer.Offset, packetStreamBuffer.Count);
+                                }
+                                else
+                                {
+                                    localPipeServer.Write(packetStream.ToArray(), 0, (int)packetStream.Length);
+                                }
+#endif
 
                                 packetCount--;
                             }

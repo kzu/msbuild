@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -6,14 +6,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Resources;
 using System.Text;
 using System.Xml;
 
 using Microsoft.Build.Framework;
-using NUnit.Framework;
 
 using ProjectCollection = Microsoft.Build.Evaluation.ProjectCollection;
+using Xunit;
 
 
 namespace Microsoft.Build.UnitTests
@@ -403,7 +404,7 @@ namespace Microsoft.Build.UnitTests
             {
                 if (s_engineResourceManager == null)
                 {
-                    s_engineResourceManager = new ResourceManager("Microsoft.Build.Resources.Strings", typeof(ProjectCollection).Assembly);
+                    s_engineResourceManager = new ResourceManager("Microsoft.Build.Resources.Strings", typeof(ProjectCollection).GetTypeInfo().Assembly);
                 }
 
                 return s_engineResourceManager;
@@ -466,7 +467,7 @@ namespace Microsoft.Build.UnitTests
             if (index != contains.Length)
             {
                 Console.WriteLine(FullLog);
-                Assert.Fail(String.Format(CultureInfo.CurrentCulture, "Log was expected to contain '{0}', but did not.\n=======\n{1}\n=======", contains[index], FullLog));
+                Assert.True(false, String.Format(CultureInfo.CurrentCulture, "Log was expected to contain '{0}', but did not.\n=======\n{1}\n=======", contains[index], FullLog));
             }
         }
 
@@ -479,7 +480,7 @@ namespace Microsoft.Build.UnitTests
             if (FullLog.Contains(contains))
             {
                 Console.WriteLine(FullLog);
-                Assert.Fail(String.Format("Log was not expected to contain '{0}', but did.", contains));
+                Assert.True(false, String.Format("Log was not expected to contain '{0}', but did.", contains));
             }
         }
 
@@ -488,7 +489,7 @@ namespace Microsoft.Build.UnitTests
         /// </summary>
         internal void AssertNoErrors()
         {
-            Assert.AreEqual(0, _errorCount);
+            Assert.Equal(0, _errorCount);
         }
 
         /// <summary>
@@ -496,7 +497,7 @@ namespace Microsoft.Build.UnitTests
         /// </summary>
         internal void AssertNoWarnings()
         {
-            Assert.AreEqual(0, _warningCount);
+            Assert.Equal(0, _warningCount);
         }
     }
 }

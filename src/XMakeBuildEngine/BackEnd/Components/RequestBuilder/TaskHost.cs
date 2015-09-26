@@ -9,8 +9,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+#if FEATURE_APPDOMAIN
 using System.Runtime.Remoting.Lifetime;
 using System.Runtime.Remoting;
+#endif
 using System.Threading;
 using System.Text;
 using Microsoft.Build.Framework;
@@ -23,6 +25,7 @@ using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 using TaskLoggingContext = Microsoft.Build.BackEnd.Logging.TaskLoggingContext;
 using System.Threading.Tasks;
 using Microsoft.Build.BackEnd.Components.Caching;
+using System.Reflection;
 
 namespace Microsoft.Build.BackEnd
 {
@@ -30,7 +33,11 @@ namespace Microsoft.Build.BackEnd
     /// The task host object which allows tasks to interface with the rest of the build system.
     /// Implementation of IBuildEngineX is thread-safe, so, for example, tasks can log concurrently on multiple threads.
     /// </summary>
-    internal class TaskHost : MarshalByRefObject, IBuildEngine4
+    internal class TaskHost :
+#if FEATURE_APPDOMAIN
+        MarshalByRefObject,
+#endif
+        IBuildEngine4
     {
         /// <summary>
         /// True if the "secret" environment variable MSBUILDNOINPROCNODE is set. 
@@ -77,12 +84,14 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private object _callbackMonitor;
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// A client sponsor is a class
         /// which will respond to a lease renewal request and will
         /// increase the lease time allowing the object to stay in memory
         /// </summary>
         private ClientSponsor _sponsor;
+#endif
 
         /// <summary>
         /// Legacy continue on error value per batch exposed via IBuildEngine
@@ -209,6 +218,7 @@ namespace Microsoft.Build.BackEnd
             { _taskLoggingContext = value; }
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// For configuring child AppDomains.
         /// </summary>
@@ -219,6 +229,7 @@ namespace Microsoft.Build.BackEnd
                 return _host.BuildParameters.AppDomainSetup;
             }
         }
+#endif
 
         /// <summary>
         /// Whether or not this is out of proc.
@@ -647,6 +658,7 @@ namespace Microsoft.Build.BackEnd
             return result;
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// InitializeLifetimeService is called when the remote object is activated. 
         /// This method will determine how long the lifetime for the object will be.
@@ -743,6 +755,7 @@ namespace Microsoft.Build.BackEnd
                 }
             }
         }
+#endif
 
         /// <summary>
         /// Determine if the event is serializable. If we are running with multiple nodes we need to make sure the logging events are serializable. If not
@@ -750,7 +763,7 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         internal bool IsEventSerializable(BuildEventArgs e)
         {
-            if (!e.GetType().IsSerializable)
+            if (!e.GetType().GetTypeInfo().IsSerializable)
             {
                 _taskLoggingContext.LogWarning(new BuildEventFileInfo(string.Empty), null, "ExpectedEventToBeSerializable", e.GetType().Name);
                 return false;
@@ -777,7 +790,9 @@ namespace Microsoft.Build.BackEnd
 
             List<IDictionary<string, ITaskItem[]>> targetOutputsPerProject = null;
 
+#if FEATURE_FILE_TRACKER
             using (FullTracking.Suspend())
+#endif
             {
                 bool overallSuccess = true;
 

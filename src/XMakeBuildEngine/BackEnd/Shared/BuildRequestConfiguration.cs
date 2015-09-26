@@ -667,7 +667,7 @@ namespace Microsoft.Build.BackEnd
                         }
                         finally
                         {
-                            translator.Writer.BaseStream.Close();
+                            translator.Writer.BaseStream.Dispose();
                         }
                     }
                 }
@@ -700,7 +700,7 @@ namespace Microsoft.Build.BackEnd
                 }
                 finally
                 {
-                    translator.Reader.BaseStream.Close();
+                    translator.Reader.BaseStream.Dispose();
                 }
             }
         }
@@ -735,7 +735,7 @@ namespace Microsoft.Build.BackEnd
         {
             // We may not have a project available.  In which case, return nothing -- we simply don't have 
             // enough information to figure out what the correct answer is.
-            if (this.Project != null)
+            if (!this.IsCached && this.Project != null)
             {
                 HashSet<string> afterTargetsFound = new HashSet<string>();
 

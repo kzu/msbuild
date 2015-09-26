@@ -13,13 +13,12 @@ if not defined MSBUILDCUSTOMPATH (
     set MSBUILDCUSTOMPATH=MSBuild.exe
 )
 
-
 echo ** MSBuild Path: %MSBUILDCUSTOMPATH%
 echo ** Building all sources
 
 :: Call MSBuild
-echo ** "%MSBUILDCUSTOMPATH%" "%~dp0build.proj" /maxcpucount /verbosity:minimal /nodeReuse:false /fileloggerparameters:Verbosity=diag;LogFile="%~dp0msbuild.log" %*
-"%MSBUILDCUSTOMPATH%" "%~dp0build.proj" /maxcpucount /verbosity:minimal /nodeReuse:false /fileloggerparameters:Verbosity=diag;LogFile="%~dp0msbuild.log" %*
+echo ** "%MSBUILDCUSTOMPATH%" "%~dp0build.proj" /verbosity:minimal /nodeReuse:false /fileloggerparameters:Verbosity=diag;LogFile="%~dp0msbuild.log" %*
+"%MSBUILDCUSTOMPATH%" "%~dp0build.proj" /verbosity:minimal /nodeReuse:false /fileloggerparameters:Verbosity=diag;LogFile="%~dp0msbuild.log" %*
 set BUILDERRORLEVEL=%ERRORLEVEL%
 echo.
 

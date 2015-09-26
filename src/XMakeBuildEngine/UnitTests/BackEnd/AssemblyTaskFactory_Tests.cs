@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //-----------------------------------------------------------------------
 // </copyright>
@@ -9,7 +9,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Xml;
-using NUnit.Framework;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Collections;
@@ -21,13 +20,13 @@ using Microsoft.Build.Construction;
 using ILoggingService = Microsoft.Build.BackEnd.Logging.ILoggingService;
 using LoggingService = Microsoft.Build.BackEnd.Logging.LoggingService;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests.BackEnd
 {
     /// <summary>
     /// Tests for the assembly task factory
     /// </summary>
-    [TestFixture]
     public class AssemblyTaskFactory_Tests
     {
         /// <summary>
@@ -48,21 +47,9 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Initialize a task factory
         /// </summary>
-        [SetUp]
-        public void Setup()
+        public AssemblyTaskFactory_Tests()
         {
             SetupTaskFactory(null, false);
-        }
-
-        /// <summary>
-        /// Tear down what was created in setup
-        /// </summary>
-        [TearDown]
-        public void TearDownAttribute()
-        {
-            _taskFactory = null;
-            _loadInfo = null;
-            _loadedType = null;
         }
 
         #region AssemblyTaskFactory
@@ -70,118 +57,134 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Make sure we get an invalid project file exception when a null load info is passed to the factory
         /// </summary>
-        [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [Fact]
         public void NullLoadInfo()
         {
-            AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
-            taskFactory.InitializeFactory(null, "TaskToTestFactories", new Dictionary<string, TaskPropertyInfo>(), string.Empty, null, false, null, ElementLocation.Create("NONE"), String.Empty);
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
+                taskFactory.InitializeFactory(null, "TaskToTestFactories", new Dictionary<string, TaskPropertyInfo>(), string.Empty, null, false, null, ElementLocation.Create("NONE"), String.Empty);
+            }
+           );
         }
-
         /// <summary>
         /// Make sure we get an invalid project file exception when a null task name is passed to the factory
         /// </summary>
-        [Test]
-        [ExpectedException(typeof(InvalidProjectFileException))]
+        [Fact]
         public void NullTaskName()
         {
-            AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
-            taskFactory.InitializeFactory(_loadInfo, null, new Dictionary<string, TaskPropertyInfo>(), string.Empty, null, false, null, ElementLocation.Create("NONE"), String.Empty);
+            Assert.Throws<InvalidProjectFileException>(() =>
+            {
+                AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
+                taskFactory.InitializeFactory(_loadInfo, null, new Dictionary<string, TaskPropertyInfo>(), string.Empty, null, false, null, ElementLocation.Create("NONE"), String.Empty);
+            }
+           );
         }
-
         /// <summary>
         /// Make sure we get an invalid project file exception when an empty task name is passed to the factory
         /// </summary>
-        [Test]
-        [ExpectedException(typeof(InvalidProjectFileException))]
+        [Fact]
         public void EmptyTaskName()
         {
-            AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
-            taskFactory.InitializeFactory(_loadInfo, String.Empty, new Dictionary<string, TaskPropertyInfo>(), string.Empty, null, false, null, ElementLocation.Create("NONE"), String.Empty);
+            Assert.Throws<InvalidProjectFileException>(() =>
+            {
+                AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
+                taskFactory.InitializeFactory(_loadInfo, String.Empty, new Dictionary<string, TaskPropertyInfo>(), string.Empty, null, false, null, ElementLocation.Create("NONE"), String.Empty);
+            }
+           );
         }
-
         /// <summary>
         /// Make sure we get an invalid project file exception when the task is not in the info
         /// </summary>
-        [Test]
-        [ExpectedException(typeof(InvalidProjectFileException))]
+        [Fact]
         public void GoodTaskNameButNotInInfo()
         {
-            AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
-            taskFactory.InitializeFactory(_loadInfo, "RandomTask", new Dictionary<string, TaskPropertyInfo>(), string.Empty, null, false, null, ElementLocation.Create("NONE"), String.Empty);
+            Assert.Throws<InvalidProjectFileException>(() =>
+            {
+                AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
+                taskFactory.InitializeFactory(_loadInfo, "RandomTask", new Dictionary<string, TaskPropertyInfo>(), string.Empty, null, false, null, ElementLocation.Create("NONE"), String.Empty);
+            }
+           );
         }
-
         /// <summary>
         /// Make sure we get an internal error when we call the initialize factory on the public method.
         /// This is done because we cannot properly initialize the task factory using the public interface and keep 
         /// backwards compatibility with orcas and whidbey.
         /// </summary>
-        [Test]
-        [ExpectedException(typeof(InternalErrorException))]
+        [Fact]
         public void CallPublicInitializeFactory()
         {
-            AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
-            taskFactory.Initialize(String.Empty, new Dictionary<string, TaskPropertyInfo>(), String.Empty, null);
+            Assert.Throws<InternalErrorException>(() =>
+            {
+                AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
+                taskFactory.Initialize(String.Empty, new Dictionary<string, TaskPropertyInfo>(), String.Empty, null);
+            }
+           );
         }
-
         /// <summary>
         /// Make sure we get an internal error when we call the ITaskFactory2 version of initialize factory.
         /// This is done because we cannot properly initialize the task factory using the public interface and keep 
         /// backwards compatibility with orcas and whidbey.
         /// </summary>
-        [Test]
-        [ExpectedException(typeof(InternalErrorException))]
+        [Fact]
         public void CallPublicInitializeFactory2()
         {
-            AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
-            taskFactory.Initialize(String.Empty, null, new Dictionary<string, TaskPropertyInfo>(), String.Empty, null);
+            Assert.Throws<InternalErrorException>(() =>
+            {
+                AssemblyTaskFactory taskFactory = new AssemblyTaskFactory();
+                taskFactory.Initialize(String.Empty, null, new Dictionary<string, TaskPropertyInfo>(), String.Empty, null);
+            }
+           );
         }
-
         #endregion
 
         /// <summary>
         /// Verify that we can ask the factory if a given task is in the factory and get the correct result back
         /// </summary>
-        [Test]
+        [Fact]
         public void CreatableByTaskFactoryGoodName()
         {
-            Assert.IsTrue(_taskFactory.TaskNameCreatableByFactory("TaskToTestFactories", null, String.Empty, null, ElementLocation.Create(".", 1, 1)));
+            Assert.True(_taskFactory.TaskNameCreatableByFactory("TaskToTestFactories", null, String.Empty, null, ElementLocation.Create(".", 1, 1)));
         }
 
         /// <summary>
         /// Expect a false answer when we ask for a task which is not in the factory.
         /// </summary>
-        [Test]
+        [Fact]
         public void CreatableByTaskFactoryNotInAssembly()
         {
-            Assert.IsFalse(_taskFactory.TaskNameCreatableByFactory("NotInAssembly", null, String.Empty, null, ElementLocation.Create(".", 1, 1)));
+            Assert.False(_taskFactory.TaskNameCreatableByFactory("NotInAssembly", null, String.Empty, null, ElementLocation.Create(".", 1, 1)));
         }
 
         /// <summary>
         /// Expect a false answer when we ask for a task which is not in the factory.
         /// </summary>
-        [Test]
-        [ExpectedException(typeof(InvalidProjectFileException))]
+        [Fact]
         public void CreatableByTaskFactoryNotInAssemblyEmptyTaskName()
         {
-            Assert.IsFalse(_taskFactory.TaskNameCreatableByFactory(String.Empty, null, String.Empty, null, ElementLocation.Create(".", 1, 1)));
+            Assert.Throws<InvalidProjectFileException>(() =>
+            {
+                Assert.False(_taskFactory.TaskNameCreatableByFactory(String.Empty, null, String.Empty, null, ElementLocation.Create(".", 1, 1)));
+            }
+           );
         }
-
         /// <summary>
         /// Expect a false answer when we ask for a task which is not in the factory.
         /// </summary>
-        [Test]
-        [ExpectedException(typeof(InvalidProjectFileException))]
+        [Fact]
         public void CreatableByTaskFactoryNullTaskName()
         {
-            Assert.IsFalse(_taskFactory.TaskNameCreatableByFactory(null, null, String.Empty, null, ElementLocation.Create(".", 1, 1)));
+            Assert.Throws<InvalidProjectFileException>(() =>
+            {
+                Assert.False(_taskFactory.TaskNameCreatableByFactory(null, null, String.Empty, null, ElementLocation.Create(".", 1, 1)));
+            }
+           );
         }
-
         /// <summary>
         /// Make sure that when an explicitly matching identity is specified (e.g. the identity is non-empty), 
         /// it still counts as correct.  
         /// </summary>
-        [Test]
+        [Fact]
         public void CreatableByTaskFactoryMatchingIdentity()
         {
             IDictionary<string, string> factoryIdentityParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -194,14 +197,14 @@ namespace Microsoft.Build.UnitTests.BackEnd
             taskIdentityParameters.Add(XMakeAttributes.runtime, XMakeAttributes.MSBuildRuntimeValues.clr4);
             taskIdentityParameters.Add(XMakeAttributes.architecture, XMakeAttributes.MSBuildArchitectureValues.any);
 
-            Assert.IsTrue(_taskFactory.TaskNameCreatableByFactory("TaskToTestFactories", taskIdentityParameters, String.Empty, null, ElementLocation.Create(".", 1, 1)));
+            Assert.True(_taskFactory.TaskNameCreatableByFactory("TaskToTestFactories", taskIdentityParameters, String.Empty, null, ElementLocation.Create(".", 1, 1)));
         }
 
         /// <summary>
         /// Verify that if the task identity parameters don't match the factory identity, TaskNameCreatableByFactory 
         /// returns false.
         /// </summary>
-        [Test]
+        [Fact]
         public void CreatableByTaskFactoryMismatchedIdentity()
         {
             IDictionary<string, string> factoryIdentityParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -214,19 +217,19 @@ namespace Microsoft.Build.UnitTests.BackEnd
             taskIdentityParameters.Add(XMakeAttributes.runtime, XMakeAttributes.MSBuildRuntimeValues.clr4);
             taskIdentityParameters.Add(XMakeAttributes.architecture, XMakeAttributes.MSBuildArchitectureValues.currentArchitecture);
 
-            Assert.IsFalse(_taskFactory.TaskNameCreatableByFactory("TaskToTestFactories", taskIdentityParameters, String.Empty, null, ElementLocation.Create(".", 1, 1)));
+            Assert.False(_taskFactory.TaskNameCreatableByFactory("TaskToTestFactories", taskIdentityParameters, String.Empty, null, ElementLocation.Create(".", 1, 1)));
         }
 
         /// <summary>
-        /// Make sure the number of properties retreived from the task factory are the same number retreived from the type directly.
+        /// Make sure the number of properties retrieved from the task factory are the same number retrieved from the type directly.
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyGetTaskParameters()
         {
             TaskPropertyInfo[] propertyInfos = _taskFactory.GetTaskParameters();
             LoadedType comparisonType = new LoadedType(typeof(TaskToTestFactories), _loadInfo);
             PropertyInfo[] comparisonInfo = comparisonType.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            Assert.AreEqual(comparisonInfo.Length, propertyInfos.Length);
+            Assert.Equal(comparisonInfo.Length, propertyInfos.Length);
 
             bool foundExpectedParameter = false;
             bool foundNotExpectedParameter = false;
@@ -244,24 +247,27 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 }
             }
 
-            Assert.IsTrue(foundExpectedParameter);
-            Assert.IsFalse(foundNotExpectedParameter);
+            Assert.True(foundExpectedParameter);
+            Assert.False(foundNotExpectedParameter);
         }
 
         /// <summary>
         /// Verify a good task can be created.
         /// </summary>
-        [Test]
-        [Ignore]
+        [Fact(Skip = "Ignored in MSTest")]
         // Ignore: Test requires installed toolset.
         public void VerifyGoodTaskInstantiation()
         {
             ITask createdTask = null;
             try
             {
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsNotInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.False(createdTask is TaskHostTask);
             }
             finally
             {
@@ -276,8 +282,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that does not use the task host can be created when passed "don't care" 
         /// for the task invocation task host parameters.
         /// </summary>
-        [Test]
-        [Ignore]
+        [Fact(Skip = "Ignored in MSTest")]
         // Ignore: Test requires installed toolset.
         public void VerifyMatchingTaskParametersDontLaunchTaskHost1()
         {
@@ -288,9 +293,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 taskParameters.Add(XMakeAttributes.runtime, XMakeAttributes.MSBuildRuntimeValues.any);
                 taskParameters.Add(XMakeAttributes.architecture, XMakeAttributes.MSBuildArchitectureValues.any);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsNotInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.False(createdTask is TaskHostTask);
             }
             finally
             {
@@ -305,8 +314,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that does not use the task host can be created when passed task host 
         /// parameters that explicitly match the current process. 
         /// </summary>
-        [Test]
-        [Ignore]
+        [Fact(Skip = "Ignored in MSTest")]
         // Ignore: Test requires installed toolset.
         public void VerifyMatchingTaskParametersDontLaunchTaskHost2()
         {
@@ -317,9 +325,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 taskParameters.Add(XMakeAttributes.runtime, XMakeAttributes.MSBuildRuntimeValues.clr4);
                 taskParameters.Add(XMakeAttributes.architecture, XMakeAttributes.GetCurrentMSBuildArchitecture());
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsNotInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.False(createdTask is TaskHostTask);
             }
             finally
             {
@@ -334,8 +346,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that does not use the task host can be created when passed "don't care" 
         /// for the task invocation task host parameters.
         /// </summary>
-        [Test]
-        [Ignore]
+        [Fact(Skip = "Ignored in MSTest")]
         // Ignore: Test requires installed toolset.
         public void VerifyMatchingUsingTaskParametersDontLaunchTaskHost1()
         {
@@ -348,9 +359,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
                 SetupTaskFactory(taskParameters, false /* don't want task host */);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsNotInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.False(createdTask is TaskHostTask);
             }
             finally
             {
@@ -365,8 +380,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that does not use the task host can be created when passed task host 
         /// parameters that explicitly match the current process. 
         /// </summary>
-        [Test]
-        [Ignore]
+        [Fact(Skip = "Ignored in MSTest")]
         // Ignore: Test requires installed toolset.
         public void VerifyMatchingUsingTaskParametersDontLaunchTaskHost2()
         {
@@ -379,9 +393,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
                 SetupTaskFactory(taskParameters, false /* don't want task host */);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsNotInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.False(createdTask is TaskHostTask);
             }
             finally
             {
@@ -396,8 +414,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that uses the task host can be created when passed task host 
         /// parameters that explicitly do not match the current process. 
         /// </summary>
-        [Test]
-        [Ignore]
+        [Fact(Skip = "Ignored in MSTest")]
+
         // Ignore: Test requires installed toolset.
         public void VerifyMatchingParametersDontLaunchTaskHost()
         {
@@ -412,9 +430,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 IDictionary<string, string> taskParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 taskParameters.Add(XMakeAttributes.architecture, XMakeAttributes.MSBuildArchitectureValues.currentArchitecture);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsNotInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.False(createdTask is TaskHostTask);
             }
             finally
             {
@@ -429,7 +451,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that uses the task host can be created when passed task host 
         /// parameters that explicitly do not match the current process. 
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyNonmatchingUsingTaskParametersLaunchTaskHost()
         {
             ITask createdTask = null;
@@ -441,9 +463,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
                 SetupTaskFactory(taskParameters, false /* don't want task host */);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.IsAssignableFrom(typeof(TaskHostTask), createdTask);
             }
             finally
             {
@@ -458,7 +484,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that uses the task host can be created when passed task host 
         /// parameters that explicitly do not match the current process. 
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyNonmatchingTaskParametersLaunchTaskHost()
         {
             ITask createdTask = null;
@@ -468,9 +494,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 taskParameters.Add(XMakeAttributes.runtime, XMakeAttributes.MSBuildRuntimeValues.clr2);
                 taskParameters.Add(XMakeAttributes.architecture, XMakeAttributes.MSBuildArchitectureValues.any);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.IsAssignableFrom(typeof(TaskHostTask), createdTask);
             }
             finally
             {
@@ -485,7 +515,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that uses the task host can be created when passed task host 
         /// parameters that explicitly do not match the current process. 
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyNonmatchingParametersLaunchTaskHost()
         {
             ITask createdTask = null;
@@ -499,9 +529,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 IDictionary<string, string> taskParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 taskParameters.Add(XMakeAttributes.architecture, XMakeAttributes.MSBuildArchitectureValues.any);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.IsAssignableFrom(typeof(TaskHostTask), createdTask);
             }
             finally
             {
@@ -516,7 +550,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that uses the task host can be created when the task factory is 
         /// explicitly instructed to launch the task host. 
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyExplicitlyLaunchTaskHost()
         {
             ITask createdTask = null;
@@ -524,9 +558,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
             {
                 SetupTaskFactory(null, true /* want task host */);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.IsAssignableFrom(typeof(TaskHostTask), createdTask);
             }
             finally
             {
@@ -541,7 +579,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that uses the task host can be created when the task factory is 
         /// explicitly instructed to launch the task host. 
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyExplicitlyLaunchTaskHostEvenIfParametersMatch1()
         {
             ITask createdTask = null;
@@ -553,9 +591,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
                 SetupTaskFactory(taskParameters, true /* want task host */);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.IsAssignableFrom(typeof(TaskHostTask), createdTask);
             }
             finally
             {
@@ -570,7 +612,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that uses the task host can be created when the task factory is 
         /// explicitly instructed to launch the task host. 
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyExplicitlyLaunchTaskHostEvenIfParametersMatch2()
         {
             ITask createdTask = null;
@@ -582,9 +624,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 taskParameters.Add(XMakeAttributes.runtime, XMakeAttributes.MSBuildRuntimeValues.any);
                 taskParameters.Add(XMakeAttributes.architecture, XMakeAttributes.MSBuildArchitectureValues.any);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.IsAssignableFrom(typeof(TaskHostTask), createdTask);
             }
             finally
             {
@@ -599,8 +645,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Verify a good task that uses the task host can be created when the task factory is 
         /// explicitly instructed to launch the task host. 
         /// </summary>
-        [Test]
-        [Ignore]
+        [Fact(Skip = "Ignored in MSTest")]
+
         // Ignore: Test requires installed toolset.
         public void VerifySameFactoryCanGenerateDifferentTaskInstances()
         {
@@ -614,9 +660,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
             try
             {
                 // #1: don't launch task host
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsNotInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), null,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.False(createdTask is TaskHostTask);
             }
             finally
             {
@@ -633,9 +683,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 taskParameters.Add(XMakeAttributes.runtime, XMakeAttributes.MSBuildRuntimeValues.clr2);
                 taskParameters.Add(XMakeAttributes.architecture, XMakeAttributes.MSBuildArchitectureValues.currentArchitecture);
 
-                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters, new AppDomainSetup(), false);
-                Assert.IsNotNull(createdTask);
-                Assert.IsInstanceOf<TaskHostTask>(createdTask);
+                createdTask = _taskFactory.CreateTaskInstance(ElementLocation.Create("MSBUILD"), null, new MockHost(), taskParameters,
+#if FEATURE_APPDOMAIN
+                    new AppDomainSetup(),
+#endif
+                    false);
+                Assert.NotNull(createdTask);
+                Assert.IsAssignableFrom(typeof(TaskHostTask), createdTask);
             }
             finally
             {
@@ -653,9 +707,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
         private void SetupTaskFactory(IDictionary<string, string> factoryParameters, bool explicitlyLaunchTaskHost)
         {
             _taskFactory = new AssemblyTaskFactory();
+#if FEATURE_ASSEMBLY_LOCATION
             _loadInfo = AssemblyLoadInfo.Create(null, Assembly.GetAssembly(typeof(TaskToTestFactories)).Location);
+#else
+            _loadInfo = AssemblyLoadInfo.Create(typeof(TaskToTestFactories).GetTypeInfo().Assembly.FullName, null);
+#endif
             _loadedType = _taskFactory.InitializeFactory(_loadInfo, "TaskToTestFactories", new Dictionary<string, TaskPropertyInfo>(), string.Empty, factoryParameters, explicitlyLaunchTaskHost, null, ElementLocation.Create("NONE"), String.Empty);
-            Assert.IsTrue(_loadedType.Assembly.Equals(_loadInfo), "Expected the AssemblyLoadInfo to be equal");
+            Assert.True(_loadedType.Assembly.Equals(_loadInfo)); // "Expected the AssemblyLoadInfo to be equal"
         }
 
         #endregion
@@ -664,7 +722,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         ///  Create a task which can be used to test the factories
         /// </summary>
-        public class TaskToTestFactories : AppDomainIsolatedTask
+        public class TaskToTestFactories
+#if FEATURE_APPDOMAIN
+            : AppDomainIsolatedTask
+#endif
         {
             /// <summary>
             /// Give a parameter which can be considered expected
@@ -687,7 +748,11 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// <summary>
             /// Execute the test
             /// </summary>
+#if FEATURE_APPDOMAIN
             public override bool Execute()
+#else
+            public bool Execute()
+#endif
             {
                 return true;
             }

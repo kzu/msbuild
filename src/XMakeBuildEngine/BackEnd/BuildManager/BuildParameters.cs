@@ -29,6 +29,7 @@ using ForwardingLoggerRecord = Microsoft.Build.Logging.ForwardingLoggerRecord;
 
 namespace Microsoft.Build.Execution
 {
+    using System.Diagnostics;
     using Utilities = Microsoft.Build.Internal.Utilities;
 
     /// <summary>
@@ -111,15 +112,17 @@ namespace Microsoft.Build.Execution
         /// </summary>
         private int _buildId = 0;
 
+#if FEATURE_THREAD_PRIORITY
         /// <summary>
         /// The thread priority with which to run the in-proc node.
         /// </summary>
         private ThreadPriority _buildThreadPriority = ThreadPriority.Normal;
+#endif
 
         /// <summary>
         /// The culture
         /// </summary>
-        private CultureInfo _culture = Thread.CurrentThread.CurrentCulture;
+        private CultureInfo _culture = CultureInfo.CurrentCulture;
 
         /// <summary>
         /// The default tools version.
@@ -200,7 +203,7 @@ namespace Microsoft.Build.Execution
         /// <summary>
         /// The UI culture.
         /// </summary>
-        private CultureInfo _uiCulture = Thread.CurrentThread.CurrentUICulture;
+        private CultureInfo _uiCulture = CultureInfo.CurrentUICulture;
 
         /// <summary>
         /// The toolset provider
@@ -295,7 +298,9 @@ namespace Microsoft.Build.Execution
             _nodeExeLocation = other._nodeExeLocation;
             _nodeId = other._nodeId;
             _onlyLogCriticalEvents = other._onlyLogCriticalEvents;
+#if FEATURE_THREAD_PRIORITY
             _buildThreadPriority = other._buildThreadPriority;
+#endif
             _toolsetProvider = other._toolsetProvider;
             _toolsetDefinitionLocations = other._toolsetDefinitionLocations;
             _toolsetProvider = other._toolsetProvider;
@@ -312,6 +317,7 @@ namespace Microsoft.Build.Execution
             _logInitialPropertiesAndItems = other._logInitialPropertiesAndItems;
         }
 
+#if FEATURE_THREAD_PRIORITY
         /// <summary>
         /// Sets the desired thread priority for building.
         /// </summary>
@@ -320,6 +326,7 @@ namespace Microsoft.Build.Execution
             get { return _buildThreadPriority; }
             set { _buildThreadPriority = value; }
         }
+#endif
 
         /// <summary>
         /// By default if the number of processes is set to 1 we will use Asynchronous logging. However if we want to use synchronous logging when the number of cpu's is set to 1
@@ -805,6 +812,7 @@ namespace Microsoft.Build.Execution
             set;
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// Information for configuring child AppDomains.
         /// </summary>
@@ -813,6 +821,7 @@ namespace Microsoft.Build.Execution
             get;
             set;
         }
+#endif
 
         /// <summary>
         ///  (for diagnostic use) Whether or not this is out of proc
@@ -996,7 +1005,11 @@ namespace Microsoft.Build.Execution
             }
 
             // Use the default location of the directory from which the engine was loaded.
+#if FEATURE_APPDOMAIN
             path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MSBuild.exe");
+#else
+            path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+#endif
             if (path != null && CheckMSBuildExeExistsAt(path))
             {
                 _nodeExeLocation = path;
@@ -1019,6 +1032,7 @@ namespace Microsoft.Build.Execution
                 }
             }
 
+#if FEATURE_APPDOMAIN
             // Search in the location of any assemblies we have loaded.
             foreach (System.Reflection.Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -1050,6 +1064,7 @@ namespace Microsoft.Build.Execution
                     }
                 }
             }
+#endif
 
             // Search in the framework directory.  Checks the COMPLUS_INSTALL_ROOT among other things.
             path = FrameworkLocationHelper.PathToDotNetFrameworkV40;
@@ -1059,7 +1074,6 @@ namespace Microsoft.Build.Execution
             }
 
             // Well, we just can't find it.  Maybe they will only build in-proc and won't need it...
-            return;
         }
 
         /// <summary>

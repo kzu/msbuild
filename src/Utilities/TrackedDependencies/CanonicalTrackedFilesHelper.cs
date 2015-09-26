@@ -4,7 +4,8 @@
 using System;
 
 using Microsoft.Build.Framework;
-using Microsoft.Build.Tasks;
+
+#if FEATURE_FILE_TRACKER
 
 namespace Microsoft.Build.Utilities
 {
@@ -81,7 +82,7 @@ namespace Microsoft.Build.Utilities
             requestedFilename = String.Empty;
 
             // No output files for the source were tracked
-            // safely assume that this is becuase we didn't track them because they were'nt compiled
+            // safely assume that this is because we didn't track them because they weren't compiled
             if ((files == null) || (files.Length == 0))
             {
                 allExist = false;
@@ -115,3 +116,5 @@ namespace Microsoft.Build.Utilities
         }
     }
 }
+
+#endif

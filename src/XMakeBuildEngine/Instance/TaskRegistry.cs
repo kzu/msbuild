@@ -20,7 +20,9 @@ using Microsoft.Build.BackEnd;
 
 using ILoggingService = Microsoft.Build.BackEnd.Logging.ILoggingService;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
+#if FEATURE_APPDOMAIN
 using TaskEngineAssemblyResolver = Microsoft.Build.BackEnd.Logging.TaskEngineAssemblyResolver;
+#endif
 using ProjectXmlUtilities = Microsoft.Build.Internal.ProjectXmlUtilities;
 using TargetLoggingContext = Microsoft.Build.BackEnd.Logging.TargetLoggingContext;
 using System.Collections.ObjectModel;
@@ -579,8 +581,8 @@ namespace Microsoft.Build.Execution
         /// </summary>
         private static bool IsTaskFactoryClass(Type type, object unused)
         {
-            return (type.IsClass &&
-                !type.IsAbstract &&
+            return (type.GetTypeInfo().IsClass &&
+                !type.GetTypeInfo().IsAbstract &&
                 typeof(Microsoft.Build.Framework.ITaskFactory).IsAssignableFrom(type));
         }
 
@@ -953,9 +955,11 @@ namespace Microsoft.Build.Execution
             internal const string XamlTaskFactory = "XamlTaskFactory";
 
             /// <summary>
+#if FEATURE_APPDOMAIN
             /// Lock for the taskFactoryTypeLoader
             /// </summary>
             private static readonly Object s_taskFactoryTypeLoaderLock = new Object();
+#endif
 
 #if DEBUG
             /// <summary>
@@ -974,10 +978,12 @@ namespace Microsoft.Build.Execution
             /// </summary>
             private readonly RegisteredTaskIdentity _taskIdentity;
 
+#if FEATURE_APPDOMAIN
             /// <summary>
             /// Typeloader for taskFactories
             /// </summary>
             private static TypeLoader s_taskFactoryTypeLoader;
+#endif
 
             /// <summary>
             /// The task name this record was registered with from the using task element
@@ -1233,10 +1239,13 @@ namespace Microsoft.Build.Execution
                     ITaskFactory factory = null;
                     LoadedType loadedType = null;
 
+
                     bool isAssemblyTaskFactory = String.Equals(TaskFactoryAttributeName, AssemblyTaskFactory, StringComparison.OrdinalIgnoreCase);
                     bool isTaskHostFactory = String.Equals(TaskFactoryAttributeName, TaskHostFactory, StringComparison.OrdinalIgnoreCase);
 
+#if FEATURE_APPDOMAIN
                     if (isAssemblyTaskFactory || isTaskHostFactory)
+#endif
                     {
                         bool explicitlyLaunchTaskHost =
                             isTaskHostFactory ||
@@ -1251,6 +1260,7 @@ namespace Microsoft.Build.Execution
                         loadedType = taskFactory.InitializeFactory(taskFactoryLoadInfo, RegisteredName, ParameterGroupAndTaskBody.UsingTaskParameters, ParameterGroupAndTaskBody.InlineTaskXmlBody, TaskFactoryParameters, explicitlyLaunchTaskHost, targetLoggingContext, elementLocation, taskProjectFile);
                         factory = taskFactory;
                     }
+#if FEATURE_APPDOMAIN
                     else
                     {
                         // We are not one of the default factories. 
@@ -1318,7 +1328,7 @@ namespace Microsoft.Build.Execution
                             {
                                 // We have loaded the type, lets now try and construct it
                                 // Any exceptions from the constructor of the task factory will be caught lower down and turned into an InvalidProjectFileExceptions
-                                factory = (ITaskFactory)AppDomain.CurrentDomain.CreateInstanceAndUnwrap(loadedType.Type.Assembly.FullName, loadedType.Type.FullName);
+                                factory = (ITaskFactory)AppDomain.CurrentDomain.CreateInstanceAndUnwrap(loadedType.Type.GetTypeInfo().Assembly.FullName, loadedType.Type.FullName);
                                 TaskFactoryLoggingHost taskFactoryLoggingHost = new TaskFactoryLoggingHost(true /*I dont have the data at this point, the safest thing to do is make sure events are serializable*/, elementLocation, targetLoggingContext);
 
                                 bool initialized = false;
@@ -1406,6 +1416,7 @@ namespace Microsoft.Build.Execution
                             }
                         }
                     }
+#endif
 
                     _taskFactoryWrapperInstance = new TaskFactoryWrapper(factory, loadedType, RegisteredName, TaskFactoryParameters);
                 }
@@ -1564,7 +1575,7 @@ namespace Microsoft.Build.Execution
                         // The type could not be got directly try and see if the type can be found by appending the FrameworkAssemblyName to it.
                         if (paramType == null)
                         {
-                            paramType = Type.GetType(expandedType + "," + typeof(ITaskItem).Assembly.FullName, false /* don't throw on error */, true /* case-insensitive */);
+                            paramType = Type.GetType(expandedType + "," + typeof(ITaskItem).GetTypeInfo().Assembly.FullName, false /* don't throw on error */, true /* case-insensitive */);
 
                             ProjectErrorUtilities.VerifyThrowInvalidProject
                             (

@@ -92,7 +92,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// We use a BindingFlags.Public flag here because the getter is public, so although the setter is internal,
         /// it is only discoverable with Reflection using the Public flag (go figure!)
         /// </remarks>
-        private static Lazy<PropertyInfo> s_projectStartedEventArgsGlobalProperties = new Lazy<PropertyInfo>(() => typeof(ProjectStartedEventArgs).GetProperty("GlobalProperties", BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty), LazyThreadSafetyMode.PublicationOnly);
+        private static Lazy<PropertyInfo> s_projectStartedEventArgsGlobalProperties = new Lazy<PropertyInfo>(() => typeof(ProjectStartedEventArgs).GetProperty("GlobalProperties", BindingFlags.Public | BindingFlags.Instance), LazyThreadSafetyMode.PublicationOnly);
 
         /// <summary>
         /// A cached reflection accessor for an internal member.
@@ -101,7 +101,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// We use a BindingFlags.Public flag here because the getter is public, so although the setter is internal,
         /// it is only discoverable with Reflection using the Public flag (go figure!)
         /// </remarks>
-        private static Lazy<PropertyInfo> s_projectStartedEventArgsToolsVersion = new Lazy<PropertyInfo>(() => typeof(ProjectStartedEventArgs).GetProperty("ToolsVersion", BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty), LazyThreadSafetyMode.PublicationOnly);
+        private static Lazy<PropertyInfo> s_projectStartedEventArgsToolsVersion = new Lazy<PropertyInfo>(() => typeof(ProjectStartedEventArgs).GetProperty("ToolsVersion", BindingFlags.Public | BindingFlags.Instance), LazyThreadSafetyMode.PublicationOnly);
 
         #region Data
 
@@ -696,7 +696,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 if (_centralLoggerSinkId == -1)
                 {
                     // Create a forwarding logger which forwards all events to an eventSourceSink
-                    Assembly engineAssembly = Assembly.GetAssembly(typeof(LoggingService));
+                    Assembly engineAssembly = typeof(LoggingService).GetTypeInfo().Assembly;
                     string loggerClassName = "Microsoft.Build.BackEnd.Logging.CentralForwardingLogger";
                     string loggerAssemblyName = engineAssembly.GetName().FullName;
                     LoggerDescription centralLoggerDescrption = new LoggerDescription
@@ -1116,11 +1116,15 @@ namespace Microsoft.Build.BackEnd.Logging
                 // If we have a componenthost then set the culture on the first message we receive
                 if (_componentHost != null)
                 {
-                    originalCultureInfo = Thread.CurrentThread.CurrentCulture;
-                    originalUICultureInfo = Thread.CurrentThread.CurrentUICulture;
-
+                    originalCultureInfo = CultureInfo.CurrentCulture;
+                    originalUICultureInfo = CultureInfo.CurrentUICulture;
+#if FEATURE_CULTUREINFO_SETTERS
+                    CultureInfo.CurrentCulture = _componentHost.BuildParameters.Culture;
+                    CultureInfo.CurrentUICulture = _componentHost.BuildParameters.UICulture;
+#else
                     Thread.CurrentThread.CurrentCulture = _componentHost.BuildParameters.Culture;
                     Thread.CurrentThread.CurrentUICulture = _componentHost.BuildParameters.UICulture;
+#endif
                     cultureSet = true;
                 }
 
@@ -1147,8 +1151,13 @@ namespace Microsoft.Build.BackEnd.Logging
                 if (cultureSet)
                 {
                     // Set the culture back to the original one so that if something else reuses this thread then it will not have a culture which it was not expecting.
+#if FEATURE_CULTUREINFO_SETTERS
+                    CultureInfo.CurrentCulture = originalCultureInfo;
+                    CultureInfo.CurrentUICulture = originalUICultureInfo;
+#else
                     Thread.CurrentThread.CurrentCulture = originalCultureInfo;
                     Thread.CurrentThread.CurrentUICulture = originalUICultureInfo;
+#endif
                 }
             }
         }
@@ -1293,8 +1302,8 @@ namespace Microsoft.Build.BackEnd.Logging
 
         /// <summary>
         /// When an exception is raised in the logging thread, we do not want the application to terminate right away. 
-        /// Whidby and orcas msbuild have the logger exceptions occuring on the engine thread so that the host can 
-        /// catch and deal with these exceptions as they may occure somewhat frequently due to user generated loggers.
+        /// Whidbey and orcas msbuild have the logger exceptions occurring on the engine thread so that the host can
+        /// catch and deal with these exceptions as they may occur somewhat frequently due to user generated loggers.
         /// This method will raise the exception on a delegate to which the engine is registered to. This delegate will 
         /// send the exception to the engine so that it can be raised on the engine thread.
         /// </summary>

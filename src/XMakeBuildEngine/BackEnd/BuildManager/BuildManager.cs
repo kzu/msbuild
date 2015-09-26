@@ -77,10 +77,12 @@ namespace Microsoft.Build.Execution
         /// </summary>
         private INodeManager _nodeManager;
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// The object responsible for creating and managing task host nodes.
         /// </summary>
         private INodeManager _taskHostNodeManager;
+#endif
 
         /// <summary>
         /// The object which determines which projects to build, and where.
@@ -381,7 +383,9 @@ namespace Microsoft.Build.Execution
 
                 // Initialize components.
                 _nodeManager = ((IBuildComponentHost)this).GetComponent(BuildComponentType.NodeManager) as INodeManager;
+#if FEATURE_APPDOMAIN
                 _taskHostNodeManager = ((IBuildComponentHost)this).GetComponent(BuildComponentType.TaskHostNodeManager) as INodeManager;
+#endif
                 _scheduler = ((IBuildComponentHost)this).GetComponent(BuildComponentType.Scheduler) as IScheduler;
                 _configCache = ((IBuildComponentHost)this).GetComponent(BuildComponentType.ConfigCache) as IConfigCache;
                 _resultsCache = ((IBuildComponentHost)this).GetComponent(BuildComponentType.ResultsCache) as IResultsCache;
@@ -455,8 +459,8 @@ namespace Microsoft.Build.Execution
         /// </summary>
         public void CancelAllSubmissions()
         {
-            CultureInfo parentThreadCulture = _buildParameters != null ? _buildParameters.Culture : Thread.CurrentThread.CurrentCulture;
-            CultureInfo parentThreadUICulture = _buildParameters != null ? _buildParameters.UICulture : Thread.CurrentThread.CurrentUICulture;
+            CultureInfo parentThreadCulture = _buildParameters != null ? _buildParameters.Culture : CultureInfo.CurrentCulture;
+            CultureInfo parentThreadUICulture = _buildParameters != null ? _buildParameters.UICulture : CultureInfo.CurrentUICulture;
 
             WaitCallback callback = new WaitCallback(
             delegate (object state)
@@ -949,19 +953,27 @@ namespace Microsoft.Build.Execution
         {
             try
             {
-                var oldCulture = Thread.CurrentThread.CurrentCulture;
-                var oldUICulture = Thread.CurrentThread.CurrentUICulture;
+                var oldCulture = CultureInfo.CurrentCulture;
+                var oldUICulture = CultureInfo.CurrentUICulture;
 
                 try
                 {
-                    if (Thread.CurrentThread.CurrentCulture != _buildParameters.Culture)
+                    if (CultureInfo.CurrentCulture != _buildParameters.Culture)
                     {
+#if FEATURE_CULTUREINFO_SETTERS
+                        CultureInfo.CurrentCulture = _buildParameters.Culture;
+#else
                         Thread.CurrentThread.CurrentCulture = _buildParameters.Culture;
+#endif
                     }
 
-                    if (Thread.CurrentThread.CurrentUICulture != _buildParameters.UICulture)
+                    if (CultureInfo.CurrentUICulture != _buildParameters.UICulture)
                     {
+#if FEATURE_CULTUREINFO_SETTERS
+                        CultureInfo.CurrentUICulture = _buildParameters.UICulture;
+#else
                         Thread.CurrentThread.CurrentUICulture = _buildParameters.UICulture;
+#endif
                     }
 
                     action();
@@ -975,14 +987,22 @@ namespace Microsoft.Build.Execution
                 finally
                 {
                     // Set the culture back to the original one so that if something else reuses this thread then it will not have a culture which it was not expecting.
-                    if (Thread.CurrentThread.CurrentCulture != oldCulture)
+                    if (CultureInfo.CurrentCulture != oldCulture)
                     {
+#if FEATURE_CULTUREINFO_SETTERS
+                        CultureInfo.CurrentCulture = oldCulture;
+#else
                         Thread.CurrentThread.CurrentCulture = oldCulture;
+#endif
                     }
 
-                    if (Thread.CurrentThread.CurrentUICulture != oldUICulture)
+                    if (CultureInfo.CurrentUICulture != oldUICulture)
                     {
+#if FEATURE_CULTUREINFO_SETTERS
+                        CultureInfo.CurrentUICulture = oldUICulture;
+#else
                         Thread.CurrentThread.CurrentUICulture = oldUICulture;
+#endif
                     }
                 }
             }
@@ -1143,6 +1163,7 @@ namespace Microsoft.Build.Execution
             // If we are aborting, we will NOT reuse the nodes because their state may be compromised by attempts to shut down while the build is in-progress.
             _nodeManager.ShutdownConnectedNodes(abort ? false : _buildParameters.EnableNodeReuse);
 
+#if FEATURE_APPDOMAIN
             // if we are aborting, the task host will hear about it in time through the task building infrastructure; 
             // so only shut down the task host nodes if we're shutting down tidily (in which case, it is assumed that all
             // tasks are finished building and thus that there's no risk of a race between the two shutdown pathways).  
@@ -1150,6 +1171,7 @@ namespace Microsoft.Build.Execution
             {
                 _taskHostNodeManager.ShutdownConnectedNodes(_buildParameters.EnableNodeReuse);
             }
+#endif
         }
 
         /// <summary>
@@ -1400,7 +1422,9 @@ namespace Microsoft.Build.Execution
                 }
 
                 _nodeManager.ShutdownConnectedNodes(_buildParameters.EnableNodeReuse);
+#if FEATURE_APPDOMAIN
                 _taskHostNodeManager.ShutdownConnectedNodes(_buildParameters.EnableNodeReuse);
+#endif
 
                 foreach (BuildSubmission submission in _buildSubmissions.Values)
                 {
@@ -1610,8 +1634,10 @@ namespace Microsoft.Build.Execution
                 (
                 -1, /* must be assigned by the NodeManager */
                 _buildParameters,
-                remoteLoggers.ToArray(),
-                AppDomain.CurrentDomain.SetupInformation
+                remoteLoggers.ToArray()
+#if FEATURE_APPDOMAIN
+                , AppDomain.CurrentDomain.SetupInformation
+#endif
                 );
             }
 
@@ -1740,10 +1766,10 @@ namespace Microsoft.Build.Execution
                 {
                     // We need to register SOME logger if we don't have any. This ensures the out of proc nodes will still send us message,
                     // ensuring we receive project started and finished events.
-                    Assembly engineAssembly = Assembly.GetAssembly(typeof(ProjectCollection));
+                    Assembly engineAssembly = typeof(ProjectCollection).GetTypeInfo().Assembly;
                     LoggerDescription forwardingLoggerDescription = new LoggerDescription(
                         loggerClassName: typeof(ConfigurableForwardingLogger).FullName,
-                        loggerAssemblyName: typeof(ConfigurableForwardingLogger).Assembly.GetName().FullName,
+                        loggerAssemblyName: typeof(ConfigurableForwardingLogger).GetTypeInfo().Assembly.GetName().FullName,
                         loggerAssemblyFile: null,
                         loggerSwitchParameters: "PROJECTSTARTEDEVENT;PROJECTFINISHEDEVENT",
                         verbosity: LoggerVerbosity.Quiet);

@@ -26,7 +26,7 @@ namespace Microsoft.Build.Tasks
     /// 
     ///      MyGlyph.fr.bmp          ==> MyGlyph.bmp [Culture='fr']
     /// 
-    /// This is because embedded resources are refered to this way.
+    /// This is because embedded resources are referred to this way.
     /// 
     /// There are plenty of corner cases with this task. See the unit test for
     /// more details.
@@ -63,9 +63,9 @@ namespace Microsoft.Build.Tasks
         /// list except that an attribute name "Culture" will have been added if 
         /// the particular file name is in the form:
         /// 
-        ///      MyResource.<any-valid-culture-id>.resx
+        ///      MyResource.&lt;any-valid-culture-id&gt;.resx
         /// 
-        /// The value of Culture will be "<any-valid-culture-id>".
+        /// The value of Culture will be "&lt;any-valid-culture-id&gt;".
         /// 
         /// If the incoming item from Files already has a Culture attribute then
         /// that original attribute is used instead.

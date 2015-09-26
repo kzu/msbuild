@@ -8,14 +8,13 @@
 using System;
 
 using Microsoft.Build.Framework;
-using NUnit.Framework;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
     /// <summary>
     /// Verify the functioning of the TaskStartedEventArgs class.
     /// </summary>
-    [TestFixture]
     public class TaskStartedEventArgs_Tests
     {
         /// <summary>
@@ -26,7 +25,7 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Trivially exercise event args default ctors to boost Frameworks code coverage
         /// </summary>
-        [Test]
+        [Fact]
         public void EventArgsCtors()
         {
 #pragma warning disable 219
@@ -39,7 +38,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Create a derrived class so that we can test the default constructor in order to increase code coverage and 
+        /// Create a derived class so that we can test the default constructor in order to increase code coverage and 
         /// verify this code path does not cause any exceptions.
         /// </summary>
         private class TaskStartedEventArgs2 : TaskStartedEventArgs

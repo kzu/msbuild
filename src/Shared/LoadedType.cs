@@ -60,7 +60,7 @@ namespace Microsoft.Build.Shared
         {
             if (_hasLoadInSeparateAppDomainAttribute == null)
             {
-                _hasLoadInSeparateAppDomainAttribute = this.Type.IsDefined(typeof(LoadInSeparateAppDomainAttribute), true /* inherited */);
+                _hasLoadInSeparateAppDomainAttribute = this.Type.GetTypeInfo().IsDefined(typeof(LoadInSeparateAppDomainAttribute), true /* inherited */);
             }
 
             return (bool)_hasLoadInSeparateAppDomainAttribute;
@@ -75,7 +75,7 @@ namespace Microsoft.Build.Shared
         {
             if (_hasSTAThreadAttribute == null)
             {
-                _hasSTAThreadAttribute = this.Type.IsDefined(typeof(RunInSTAAttribute), true /* inherited */);
+                _hasSTAThreadAttribute = this.Type.GetTypeInfo().IsDefined(typeof(RunInSTAAttribute), true /* inherited */);
             }
 
             return (bool)_hasSTAThreadAttribute;
@@ -92,7 +92,7 @@ namespace Microsoft.Build.Shared
             // we changed to running all tasks in MTA.
             if (String.Equals("Microsoft.Build.Tasks.Xaml.PartialClassGenerationTask", _type.FullName, StringComparison.OrdinalIgnoreCase))
             {
-                AssemblyName assemblyName = _type.Assembly.GetName();
+                AssemblyName assemblyName = _type.GetTypeInfo().Assembly.GetName();
                 Version lastVersionToForce = new Version(3, 5);
                 if (assemblyName.Version.CompareTo(lastVersionToForce) > 0)
                 {
@@ -120,7 +120,7 @@ namespace Microsoft.Build.Shared
 
         /// <summary>
         /// If we loaded an assembly for this type.
-        /// We use this information to help created AppDomains to resolve types that it could not load successfuly
+        /// We use this information to help created AppDomains to resolve types that it could not load successfully
         /// </summary>
         internal Assembly LoadedAssembly
         {
@@ -157,7 +157,7 @@ namespace Microsoft.Build.Shared
 
         /// <summary>
         /// Assembly, if any, that we loaded for this type.
-        /// We use this information to help created AppDomains to resolve types that it could not load successfuly
+        /// We use this information to help created AppDomains to resolve types that it could not load successfully
         /// </summary>
         private Assembly _loadedAssembly;
     }

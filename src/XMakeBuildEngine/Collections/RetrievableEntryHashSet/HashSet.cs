@@ -9,7 +9,9 @@ using System.Diagnostics.Contracts;
 #if !SILVERLIGHT
 using System.Runtime.Serialization;
 #endif
+#if FEATURE_SECURITY_PERMISSIONS
 using System.Security.Permissions;
+#endif
 using System.Text;
 using System.Diagnostics.CodeAnalysis;
 using System.Security;
@@ -47,7 +49,7 @@ namespace Microsoft.Build.Collections
 {
     /// <summary>
     /// Implementation notes:
-    /// This uses an array-based implementation similar to Dictionary<T>, using a buckets array
+    /// This uses an array-based implementation similar to <see cref="Dictionary{T}" />, using a buckets array
     /// to map hash values to the Slots array. Items in the Slots array that hash to the same value
     /// are chained together through the "next" indices. 
     /// 
@@ -88,10 +90,14 @@ namespace Microsoft.Build.Collections
     public class HashSet<T> : ICollection<T>, ISet<T>
 #else
     [Serializable()]
-#if !MONO
+#if !MONO && FEATURE_SECURITY_PERMISSIONS
     [System.Security.Permissions.HostProtection(MayLeakOnAbort = true)]
 #endif
-    internal class RetrievableEntryHashSet<T> : ICollection<T>, ISerializable, IDeserializationCallback, IDictionary<string, T>
+    internal class RetrievableEntryHashSet<T> : ICollection<T>,
+#if FEATURE_BINARY_SERIALIZATION
+        ISerializable, IDeserializationCallback,
+#endif
+        IDictionary<string, T>
         where T : class, IKeyed
 #endif
     {
@@ -124,8 +130,10 @@ namespace Microsoft.Build.Collections
         private bool _readOnly;
 
 #if !SILVERLIGHT
+#if FEATURE_BINARY_SERIALIZATION
         // temporary variable needed during deserialization
         private SerializationInfo _siInfo;
+#endif
 #endif
 
         #region Constructors
@@ -206,6 +214,7 @@ namespace Microsoft.Build.Collections
         }
 
 #if !SILVERLIGHT
+#if FEATURE_BINARY_SERIALIZATION
         protected RetrievableEntryHashSet(SerializationInfo info, StreamingContext context)
         {
             // We can't do anything with the keys and values until the entire graph has been 
@@ -214,6 +223,7 @@ namespace Microsoft.Build.Collections
             // OnDeserialization has been called.
             _siInfo = info;
         }
+#endif
 #endif
 
         #endregion
@@ -251,7 +261,7 @@ namespace Microsoft.Build.Collections
         }
 
         /// <summary>
-        /// Add item to this hashset. This is the explicit implementation of the ICollection<T>
+        /// Add item to this hashset. This is the explicit implementation of the <see cref="ICollection{T}" />
         /// interface. The other Add method returns bool indicating whether item was added.
         /// </summary>
         /// <param name="item">item to add</param>
@@ -501,6 +511,7 @@ namespace Microsoft.Build.Collections
         #region ISerializable methods
 
 #if !SILVERLIGHT
+#if FEATURE_BINARY_SERIALIZATION
         // [SecurityPermissionAttribute(SecurityAction.LinkDemand, Flags = SecurityPermissionFlag.SerializationFormatter)]
         [SecurityCritical]
         public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -522,11 +533,13 @@ namespace Microsoft.Build.Collections
             }
         }
 #endif
+#endif
         #endregion
 
         #region IDeserializationCallback methods
 
 #if !SILVERLIGHT
+#if FEATURE_BINARY_SERIALIZATION
         public virtual void OnDeserialization(Object sender)
         {
             if (_siInfo == null)
@@ -568,6 +581,7 @@ namespace Microsoft.Build.Collections
             _version = _siInfo.GetInt32(VersionName);
             _siInfo = null;
         }
+#endif
 #endif
 
         #endregion
@@ -1722,7 +1736,7 @@ namespace Microsoft.Build.Collections
 
 #if !SILVERLIGHT
         [Serializable()]
-#if !MONO
+#if !MONO && FEATURE_SECURITY_PERMISSIONS
         [System.Security.Permissions.HostProtection(MayLeakOnAbort = true)]
 #endif
 #endif

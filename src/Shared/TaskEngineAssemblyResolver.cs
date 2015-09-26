@@ -6,7 +6,6 @@ using System.IO;
 using System.Reflection;
 using System.Diagnostics;
 using System.Globalization;
-using System.Security.Permissions;
 
 using Microsoft.Build.Shared;
 
@@ -15,7 +14,8 @@ namespace Microsoft.Build.BackEnd.Logging
     /// <summary>
     /// This is a helper class to install an AssemblyResolver event handler in whatever AppDomain this class is created in.
     /// </summary>
-    internal class TaskEngineAssemblyResolver : MarshalByRefObject
+    internal class TaskEngineAssemblyResolver
+        : MarshalByRefObject
     {
         /// <summary>
         /// This public default constructor is needed so that instances of this class can be created by NDP.
@@ -92,7 +92,7 @@ namespace Microsoft.Build.BackEnd.Logging
 #if (!CLR2COMPATIBILITY)
                             return Assembly.UnsafeLoadFrom(_taskAssemblyFile);
 #else
-                            return Assembly.LoadFrom(taskAssemblyFile);
+                            return Assembly.LoadFrom(_taskAssemblyFile);
 #endif
                         }
                     }

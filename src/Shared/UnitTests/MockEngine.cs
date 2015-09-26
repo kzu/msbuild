@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -8,7 +8,7 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
-using NUnit.Framework;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
@@ -413,13 +413,10 @@ namespace Microsoft.Build.UnitTests
                 _upperLog = _upperLog.ToUpperInvariant();
             }
 
-            Assert.IsTrue
-            (
-                !_upperLog.Contains
+            Assert.False(_upperLog.Contains
                 (
                     contains.ToUpperInvariant()
-                )
-            );
+                ));
 
             // If we do not contain this string than pass it to
             // MockLogger. Since MockLogger is also registered as
@@ -431,7 +428,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Delegate which will get the resource from the correct resoruce manager
+        /// Delegate which will get the resource from the correct resource manager
         /// </summary>
         public delegate string GetStringDelegate(string resourceName);
 

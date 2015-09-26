@@ -9,20 +9,21 @@ using System.IO;
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Tasks;
+
+#if FEATURE_FILE_TRACKER
 
 namespace Microsoft.Build.Utilities
 {
     /// <summary>
     /// This class is the filetracking log interpreter for .write. tracking logs in canonical form
-    /// Canoncial .write. logs need to be rooted, since the outputs need to be associated with an input.
+    /// Canonical .write. logs need to be rooted, since the outputs need to be associated with an input.
     /// </summary>
     public class CanonicalTrackedOutputFiles
     {
         #region Member Data
         // The output dependency table
         private Dictionary<string, Dictionary<string, DateTime>> _dependencyTable;
-        // The .write. trackg log files
+        // The .write. tracking log files
         private ITaskItem[] _tlogFiles;
         // The TaskLoggingHelper that we log progress to
         private TaskLoggingHelper _log;
@@ -33,12 +34,7 @@ namespace Microsoft.Build.Utilities
         #region Properties
 
         // Provide external access to the dependencyTable
-#if WHIDBEY_VISIBILITY
-        internal
-#else
-        public
-#endif
-        Dictionary<string, Dictionary<string, DateTime>> DependencyTable
+        public Dictionary<string, Dictionary<string, DateTime>> DependencyTable
         {
             get { return _dependencyTable; }
         }
@@ -680,7 +676,7 @@ namespace Microsoft.Build.Utilities
                 }
 
                 // Write out the dependency information as a new tlog
-                using (StreamWriter outputs = new StreamWriter(firstTlog, false, System.Text.Encoding.Unicode))
+                using (StreamWriter outputs = FileUtilities.OpenWrite(firstTlog, false, System.Text.Encoding.Unicode))
                 {
                     foreach (string rootingMarker in _dependencyTable.Keys)
                     {
@@ -888,3 +884,5 @@ namespace Microsoft.Build.Utilities
         #endregion
     }
 }
+
+#endif

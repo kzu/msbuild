@@ -1,8 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //-----------------------------------------------------------------------
-// <copyright file="LazyFormattedEventArgs_Tests.cs" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
 // </copyright>
 // <summary>Tests for LazyFormattedEventArgs</summary>
 //-----------------------------------------------------------------------
@@ -16,7 +14,6 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
 
-using NUnit.Framework;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Evaluation;
@@ -26,19 +23,19 @@ using Microsoft.Build.Shared;
 using System.Text;
 using System.IO;
 using Microsoft.Build.Internal;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests.Framework
 {
     /// <summary>
     /// Tests for LazyFormattedEventArgs
     /// </summary>
-    [TestFixture]
     public class LazyFormattedEventArgs_Tests
     {
         /// <summary>
         /// Don't crash when task logs with too few format markers
         /// </summary>
-        [Test]
+        [Fact]
         public void DoNotCrashOnInvalidFormatExpression()
         {
             string content = @"

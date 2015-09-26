@@ -14,8 +14,10 @@ using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Win32;
 
+#if FEATURE_APPDOMAIN
 // Needed for DoesTaskHostExistForParameters
 using NodeProviderOutOfProcTaskHost = Microsoft.Build.BackEnd.NodeProviderOutOfProcTaskHost;
+#endif
 
 namespace Microsoft.Build.Evaluation
 {
@@ -352,12 +354,14 @@ namespace Microsoft.Build.Evaluation
             parameters.Add(XMakeAttributes.architecture, architecture);
 
             TaskHostContext desiredContext = CommunicationsUtilities.GetTaskHostContext(parameters);
+#if FEATURE_APPDOMAIN
             string taskHostLocation = NodeProviderOutOfProcTaskHost.GetMSBuildLocationFromHostContext(desiredContext);
 
             if (taskHostLocation != null && FileUtilities.FileExistsNoThrow(taskHostLocation))
             {
                 return true;
             }
+#endif
 
             return false;
         }
@@ -392,11 +396,11 @@ namespace Microsoft.Build.Evaluation
             int i = keyName.IndexOf('\\');
             if (i != -1)
             {
-                basekeyName = keyName.Substring(0, i).ToUpper(System.Globalization.CultureInfo.InvariantCulture);
+                basekeyName = keyName.Substring(0, i).ToUpperInvariant();
             }
             else
             {
-                basekeyName = keyName.ToUpper(System.Globalization.CultureInfo.InvariantCulture);
+                basekeyName = keyName.ToUpperInvariant();
             }
 
             RegistryKey basekey = null;
@@ -421,9 +425,11 @@ namespace Microsoft.Build.Evaluation
                 case "HKEY_CURRENT_CONFIG":
                     basekey = RegistryKey.OpenBaseKey(RegistryHive.CurrentConfig, view);
                     break;
+#if FEATURE_REGISTRYHIVE_DYNDATA
                 case "HKEY_DYN_DATA":
                     basekey = RegistryKey.OpenBaseKey(RegistryHive.DynData, view);
                     break;
+#endif
                 default:
                     ErrorUtilities.ThrowArgument(keyName);
                     break;

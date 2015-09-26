@@ -11,6 +11,7 @@ using Microsoft.Build.Shared;
 using Microsoft.Build.BackEnd;
 
 using InternalLoggerException = Microsoft.Build.Exceptions.InternalLoggerException;
+using System.Linq;
 
 namespace Microsoft.Build.Logging
 {
@@ -250,9 +251,13 @@ namespace Microsoft.Build.Logging
         /// <returns>true, if specified type is a logger</returns>
         private static bool IsForwardingLoggerClass(Type type, object unused)
         {
-            return (type.IsClass &&
-                !type.IsAbstract &&
-                (type.GetInterface("IForwardingLogger") != null));
+            return (type.GetTypeInfo().IsClass &&
+                !type.GetTypeInfo().IsAbstract &&
+#if FEATURE_TYPE_GETINTERFACE
+                (type.GetTypeInfo().GetInterface("IForwardingLogger") != null));
+#else
+                (type.GetInterfaces().Any(interfaceType => interfaceType.Name == "IForwardingLogger")));
+#endif
         }
 
         /// <summary>
@@ -262,9 +267,13 @@ namespace Microsoft.Build.Logging
         /// <returns>true, if specified type is a logger</returns>
         private static bool IsLoggerClass(Type type, object unused)
         {
-            return (type.IsClass &&
-                !type.IsAbstract &&
-                (type.GetInterface("ILogger") != null));
+            return (type.GetTypeInfo().IsClass &&
+                !type.GetTypeInfo().IsAbstract &&
+#if FEATURE_TYPE_GETINTERFACE
+                (type.GetTypeInfo().GetInterface("ILogger") != null));
+#else
+                (type.GetInterfaces().Any(interfaceType => interfaceType.Name == "ILogger")));
+#endif
         }
 
         /// <summary>

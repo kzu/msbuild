@@ -8,21 +8,19 @@
 using System;
 
 using Microsoft.Build.Framework;
-using NUnit.Framework;
-#pragma warning disable 0219
+using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
     /// <summary>
     /// Verify the functioning of the TaskCommandLineEventArgs class.
     /// </summary>
-    [TestFixture]
     public class TaskCommandLineEventArgs_Tests
     {
         /// <summary>
         /// Trivially exercise event args default ctors to boost Frameworks code coverage
         /// </summary>
-        [Test]
+        [Fact]
         public void EventArgsCtors()
         {
             TaskCommandLineEventArgs taskCommandLineEvent = new TaskCommandLineEventArgs2();
@@ -33,7 +31,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Create a derrived class so that we can test the default constructor in order to increase code coverage and 
+        /// Create a derived class so that we can test the default constructor in order to increase code coverage and 
         /// verify this code path does not cause any exceptions.
         /// </summary>
         private class TaskCommandLineEventArgs2 : TaskCommandLineEventArgs

@@ -303,7 +303,11 @@ namespace Microsoft.Build.BackEnd
                 if (_taskNode != null)
                 {
                     taskHost = new TaskHost(_componentHost, _buildRequestEntry, _targetChildInstance.Location, _targetBuilderCallback);
-                    _taskExecutionHost.InitializeForTask(taskHost, _targetLoggingContext, _buildRequestEntry.RequestConfiguration.Project, _taskNode.Name, _taskNode.Location, _taskHostObject, _continueOnError != ContinueOnError.ErrorAndStop, taskHost.AppDomainSetup, taskHost.IsOutOfProc, _cancellationToken);
+                    _taskExecutionHost.InitializeForTask(taskHost, _targetLoggingContext, _buildRequestEntry.RequestConfiguration.Project, _taskNode.Name, _taskNode.Location, _taskHostObject, _continueOnError != ContinueOnError.ErrorAndStop,
+#if FEATURE_APPDOMAIN
+                        taskHost.AppDomainSetup,
+#endif
+                        taskHost.IsOutOfProc, _cancellationToken);
                 }
 
                 List<string> taskParameterValues = CreateListOfParameterValues();
@@ -339,10 +343,12 @@ namespace Microsoft.Build.BackEnd
             {
                 _taskExecutionHost.CleanupForTask();
 
+#if FEATURE_APPDOMAIN
                 if (taskHost != null)
                 {
                     taskHost.MarkAsInactive();
                 }
+#endif
 
                 // Now all task batches are done, apply all item adds to the outer 
                 // target batch; we do this even if the task wasn't found (in that case,
@@ -417,11 +423,17 @@ namespace Microsoft.Build.BackEnd
                         try
                         {
                             if (
-                                ((requirements.Value & TaskRequirements.RequireSTAThread) == TaskRequirements.RequireSTAThread) &&
-                                (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+                                ((requirements.Value & TaskRequirements.RequireSTAThread) == TaskRequirements.RequireSTAThread)
+#if FEATURE_APARTMENT_STATE
+                                && (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+#endif
                                 )
                             {
+#if FEATURE_APARTMENT_STATE
                                 taskResult = ExecuteTaskInSTAThread(bucket, taskLoggingContext, taskIdentityParameters, taskHost, howToExecuteTask);
+#else
+                                throw new PlatformNotSupportedException(TaskRequirements.RequireSTAThread.ToString());
+#endif
                             }
                             else
                             {
@@ -517,6 +529,8 @@ namespace Microsoft.Build.BackEnd
             return taskIdentityParameters;
         }
 
+
+#if FEATURE_APARTMENT_STATE
         /// <summary>
         /// Executes the task using an STA thread.
         /// </summary>
@@ -580,6 +594,7 @@ namespace Microsoft.Build.BackEnd
 
             return taskResult;
         }
+#endif
 
         /// <summary>
         /// Logs a task skipped message if necessary.
@@ -764,7 +779,9 @@ namespace Microsoft.Build.BackEnd
                     }
                     else
                     {
+#if FEATURE_FILE_TRACKER
                         using (FullTracking.Track(taskLoggingContext.TargetLoggingContext.Target.Name, _taskNode.Name, _buildRequestEntry.ProjectRootDirectory, _buildRequestEntry.RequestConfiguration.Project.PropertiesToBuildWith))
+#endif
                         {
                             taskResult = taskExecutionHost.Execute();
                         }
@@ -812,6 +829,7 @@ namespace Microsoft.Build.BackEnd
                         // Rethrow wrapped in order to avoid losing the callstack
                         throw new InternalLoggerException(taskException.Message, taskException, ex.BuildEventArgs, ex.ErrorCode, ex.HelpKeyword, ex.InitializationException);
                     }
+#if FEATURE_VARIOUS_EXCEPTIONS
                     else if (type == typeof(ThreadAbortException))
                     {
                         Thread.ResetAbort();
@@ -821,6 +839,7 @@ namespace Microsoft.Build.BackEnd
                         // Stack will be lost
                         throw taskException;
                     }
+#endif
                     else if (type == typeof(BuildAbortedException))
                     {
                         _continueOnError = ContinueOnError.ErrorAndStop;
@@ -851,7 +870,7 @@ namespace Microsoft.Build.BackEnd
                             throw new InvalidProjectFileException(ipex.Message, ipex);
                         }
                     }
-                    else if (type == typeof(Exception) || type.IsSubclassOf(typeof(Exception)))
+                    else if (type == typeof(Exception) || type.GetTypeInfo().IsSubclassOf(typeof(Exception)))
                     {
                         // Occasionally, when debugging a very uncommon task exception, it is useful to loop the build with 
                         // a debugger attached to break on 2nd chance exceptions.

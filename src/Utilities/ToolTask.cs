@@ -16,8 +16,6 @@ using System.ComponentModel;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
-using Microsoft.Build.Tasks;
-
 namespace Microsoft.Build.Utilities
 {
     /// <summary>
@@ -221,7 +219,7 @@ namespace Microsoft.Build.Utilities
         /// in addition to (or selectively overriding) the regular environment block.
         /// </summary>
         /// <remarks>
-        /// Using this instead of EnvironmentOverride as that takes a StringDictionary,
+        /// Using this instead of EnvironmentOverride as that takes a Dictionary,
         /// which cannot be set from an MSBuild project.
         /// </remarks>
         public string[] EnvironmentVariables
@@ -293,7 +291,7 @@ namespace Microsoft.Build.Utilities
         /// </summary>
         /// <returns>The new value for the Environment for the task.</returns>
         [Obsolete("Use EnvironmentVariables property")]
-        virtual protected StringDictionary EnvironmentOverride
+        virtual protected Dictionary<string, string> EnvironmentOverride
         {
             get { return null; }
         }
@@ -695,7 +693,7 @@ namespace Microsoft.Build.Utilities
                 responseFile = FileUtilities.GetTemporaryFile(".rsp");
 
                 // Use the encoding specified by the overridable ResponseFileEncoding property
-                using (StreamWriter responseFileStream = new StreamWriter(responseFile, false, this.ResponseFileEncoding))
+                using (StreamWriter responseFileStream = FileUtilities.OpenWrite(responseFile, false, this.ResponseFileEncoding))
                 {
                     responseFileStream.Write(ResponseFileEscape(responseFileCommands));
                 }
@@ -764,12 +762,17 @@ namespace Microsoft.Build.Utilities
 
             // Old style environment overrides
 #pragma warning disable 0618 // obsolete
-            StringDictionary envOverrides = EnvironmentOverride;
+            Dictionary<string, string> envOverrides = EnvironmentOverride;
             if (null != envOverrides)
             {
-                foreach (DictionaryEntry entry in envOverrides)
+                foreach (KeyValuePair<string, string> entry in envOverrides)
                 {
-                    startInfo.EnvironmentVariables[(string)entry.Key] = (string)entry.Value;
+#if FEATURE_PROCESSSTARTINFO_ENVIRONMENT
+                    startInfo.Environment[entry.Key] = entry.Value;
+#else
+                    startInfo.EnvironmentVariables[entry.Key] = entry.Value;
+#endif
+
                 }
 #pragma warning restore 0618
             }
@@ -779,7 +782,11 @@ namespace Microsoft.Build.Utilities
             {
                 foreach (KeyValuePair<object, object> variable in _environmentVariablePairs)
                 {
+#if FEATURE_PROCESSSTARTINFO_ENVIRONMENT
+                    startInfo.Environment[(string)variable.Key] = (string)variable.Value;
+#else
                     startInfo.EnvironmentVariables[(string)variable.Key] = (string)variable.Value;
+#endif
                 }
             }
 
@@ -831,7 +838,7 @@ namespace Microsoft.Build.Utilities
 
                 // turn on the Process.Exited event
                 proc.EnableRaisingEvents = true;
-                // sign up for the exit notifcation
+                // sign up for the exit notification
                 proc.Exited += new EventHandler(ReceiveExitNotification);
 
                 // turn on async stderr notifications
@@ -848,7 +855,7 @@ namespace Microsoft.Build.Utilities
 
                 // Close the input stream. This is done to prevent commands from
                 // blocking the build waiting for input from the user.
-                proc.StandardInput.Close();
+                proc.StandardInput.Dispose();
 
                 // sign up for stderr callbacks
                 proc.BeginErrorReadLine();
@@ -856,8 +863,7 @@ namespace Microsoft.Build.Utilities
                 proc.BeginOutputReadLine();
 
                 // start the time-out timer
-                _toolTimer = new Timer(new TimerCallback(ReceiveTimeoutNotification));
-                _toolTimer.Change(Timeout, System.Threading.Timeout.Infinite /* no periodic timeouts */);
+                _toolTimer = new Timer(new TimerCallback(ReceiveTimeoutNotification), null, Timeout, System.Threading.Timeout.Infinite /* no periodic timeouts */);
 
                 // deal with the various notifications
                 HandleToolNotifications(proc);
@@ -883,7 +889,7 @@ namespace Microsoft.Build.Utilities
                         // Leave the exit code at -1.
                     }
 
-                    proc.Close();
+                    proc.Dispose();
                     proc = null;
                 }
 
@@ -899,11 +905,11 @@ namespace Microsoft.Build.Utilities
                 lock (_eventCloseLock)
                 {
                     _eventsDisposed = true;
-                    _standardErrorDataAvailable.Close();
-                    _standardOutputDataAvailable.Close();
+                    _standardErrorDataAvailable.Dispose();
+                    _standardOutputDataAvailable.Dispose();
 
-                    _toolExited.Close();
-                    _toolTimeoutExpired.Close();
+                    _toolExited.Dispose();
+                    _toolTimeoutExpired.Dispose();
 
                     if (_toolTimer != null)
                     {
@@ -1083,7 +1089,7 @@ namespace Microsoft.Build.Utilities
                 }
 
                 // wait until the process finishes exiting/getting killed. 
-                // We don't want to wait forever here because the task is already supposed to be dieing, we just want to give it long enought
+                // We don't want to wait forever here because the task is already supposed to be dieing, we just want to give it long enough
                 // to try and flush what it can and stop. If it cannot do that in a reasonable time frame then we will just ignore it.
                 int timeout = 5000;
                 string timeoutFromEnvironment = Environment.GetEnvironmentVariable("MSBUILDTOOLTASKCANCELPROCESSWAITTIMEOUT");
@@ -1553,18 +1559,18 @@ namespace Microsoft.Build.Utilities
                 }
 
                 // Log the environment. We do this up here,
-                // rather than later where the enviroment is set,
+                // rather than later where the environment is set,
                 // so that it appears before the command line is logged.
                 bool alreadyLoggedEnvironmentHeader = false;
 
                 // Old style environment overrides
 #pragma warning disable 0618 // obsolete
-                StringDictionary envOverrides = EnvironmentOverride;
+                Dictionary<string, string> envOverrides = EnvironmentOverride;
                 if (null != envOverrides)
                 {
-                    foreach (DictionaryEntry entry in envOverrides)
+                    foreach (KeyValuePair<string, string> entry in envOverrides)
                     {
-                        alreadyLoggedEnvironmentHeader = LogEnvironmentVariable(alreadyLoggedEnvironmentHeader, (string)entry.Key, (string)entry.Value);
+                        alreadyLoggedEnvironmentHeader = LogEnvironmentVariable(alreadyLoggedEnvironmentHeader, entry.Key, entry.Value);
                     }
 #pragma warning restore 0618
                 }

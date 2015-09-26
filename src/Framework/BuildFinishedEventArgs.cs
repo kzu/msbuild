@@ -21,7 +21,9 @@ namespace Microsoft.Build.Framework
     /// without following certain special FX guidelines, can break both
     /// forward and backward compatibility
     /// </remarks>
+#if FEATURE_BINARY_SERIALIZATION
     [Serializable]
+#endif
     public class BuildFinishedEventArgs : BuildStatusEventArgs
     {
         /// <summary>
@@ -39,7 +41,7 @@ namespace Microsoft.Build.Framework
         }
 
         /// <summary>
-        /// Constructor to initialize all paramterers.
+        /// Constructor to initialize all parameters.
         /// Sender field cannot be set here and is assumed to be "MSBuild"
         /// </summary>
         /// <param name="message">text message</param>
@@ -96,7 +98,7 @@ namespace Microsoft.Build.Framework
         }
 
 
-
+#if FEATURE_BINARY_SERIALIZATION
         #region CustomSerializationToStream
         /// <summary>
         /// Serializes to a stream through a binary writer
@@ -119,6 +121,7 @@ namespace Microsoft.Build.Framework
             _succeeded = reader.ReadBoolean();
         }
         #endregion
+#endif
         /// <summary>
         /// Succeeded is true if the build succeeded; false otherwise.
         /// </summary>

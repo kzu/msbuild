@@ -216,8 +216,8 @@ namespace Microsoft.Build.BackEnd
         public void ContinueRequest()
         {
             ErrorUtilities.VerifyThrow(HasActiveBuildRequest, "Request not building");
-            ErrorUtilities.VerifyThrow(!_terminateEvent.WaitOne(0, false), "Request already terminated");
-            ErrorUtilities.VerifyThrow(!_continueEvent.WaitOne(0, false), "Request already continued");
+            ErrorUtilities.VerifyThrow(!_terminateEvent.WaitOne(0), "Request already terminated");
+            ErrorUtilities.VerifyThrow(!_continueEvent.WaitOne(0), "Request already continued");
             VerifyEntryInReadyState();
 
             _continueResults = _requestEntry.Continue();
@@ -633,21 +633,30 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private void SetCommonWorkerThreadParameters()
         {
+#if FEATURE_CULTUREINFO_SETTERS
+            CultureInfo.CurrentCulture = _componentHost.BuildParameters.Culture;
+            CultureInfo.CurrentUICulture = _componentHost.BuildParameters.UICulture;
+#else
             Thread.CurrentThread.CurrentCulture = _componentHost.BuildParameters.Culture;
             Thread.CurrentThread.CurrentUICulture = _componentHost.BuildParameters.UICulture;
+#endif
+#if FEATURE_THREAD_PRIORITY
             Thread.CurrentThread.Priority = _componentHost.BuildParameters.BuildThreadPriority;
+#endif
             Thread.CurrentThread.IsBackground = true;
 
+            // NOTE: This is safe to do because we have specified long-running so we get our own new thread.
+            string threadName = "RequestBuilder thread";
+
+#if FEATURE_APARTMENT_STATE
             if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
             {
                 // NOTE: This is safe to do because the STA scheduler always gives us our own new thread.
-                Thread.CurrentThread.Name = "RequestBuilder STA thread";
+                threadName = "RequestBuilder STA thread";
             }
-            else
-            {
-                // NOTE: This is safe to do because we have specified long-running so we get our own new thread.
-                Thread.CurrentThread.Name = "RequestBuilder thread";
-            }
+#endif
+
+            Thread.CurrentThread.Name = threadName;
         }
 
         /// <summary>
@@ -699,12 +708,14 @@ namespace Microsoft.Build.BackEnd
                 }
 #endif
             }
+#if FEATURE_VARIOUS_EXCEPTIONS
             catch (ThreadAbortException)
             {
                 // Do nothing.  This will happen when the thread is forcibly terminated because we are shutting down, for example
                 // when the unit test framework terminates.
                 throw;
             }
+#endif
             catch (Exception e)
             {
                 // Dump all engine exceptions to a temp file
@@ -891,8 +902,13 @@ namespace Microsoft.Build.BackEnd
 
                     handle = await handles.ToTask();
 
+#if FEATURE_CULTUREINFO_SETTERS
+                    CultureInfo.CurrentCulture = savedCulture;
+                    CultureInfo.CurrentUICulture = savedUICulture;
+#else
                     Thread.CurrentThread.CurrentCulture = savedCulture;
                     Thread.CurrentThread.CurrentUICulture = savedUICulture;
+#endif
                 }
                 else
                 {
@@ -1116,8 +1132,10 @@ namespace Microsoft.Build.BackEnd
                 }
                 catch (DirectoryNotFoundException)
                 {
+#if FEATURE_ENVIRONMENT_SYSTEMDIRECTORY
                     // Somehow the startup directory vanished. This can happen if build was started from a USB Key and it was removed.
                     NativeMethodsShared.SetCurrentDirectory(Environment.SystemDirectory);
+#endif
                 }
             }
 

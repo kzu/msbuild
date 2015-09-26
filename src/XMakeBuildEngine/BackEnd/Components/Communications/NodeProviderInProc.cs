@@ -212,11 +212,14 @@ namespace Microsoft.Build.BackEnd
                 var p = Process.GetCurrentProcess();
                 {
                     // This should be reasonably sufficient to assume MS Expression Blend 4 or earlier
-                    if ((FileUtilities.CurrentExecutableName.Equals("Blend", StringComparison.OrdinalIgnoreCase)) &&
-                        (p.MainModule.FileVersionInfo.OriginalFilename.Equals("Blend.exe", StringComparison.OrdinalIgnoreCase)) &&
-                        (p.MainModule.FileVersionInfo.ProductMajorPart < 5))
+                    if ((FileUtilities.CurrentExecutableName.Equals("Blend", StringComparison.OrdinalIgnoreCase)))
                     {
-                        _exclusiveOperatingEnvironment = false;
+                        FileVersionInfo mainModuleFileVersionInfo = FileVersionInfo.GetVersionInfo(p.MainModule.FileName);
+                        if (mainModuleFileVersionInfo.OriginalFilename.Equals("Blend.exe", StringComparison.OrdinalIgnoreCase) &&
+                            (mainModuleFileVersionInfo.ProductMajorPart < 5))
+                        {
+                            _exclusiveOperatingEnvironment = false;
+                        }
                     }
                 }
 
@@ -306,7 +309,7 @@ namespace Microsoft.Build.BackEnd
                         (_inProcNodeOwningOperatingEnvironment != null))
                     {
                         _inProcNodeOwningOperatingEnvironment.Release();
-                        _inProcNodeOwningOperatingEnvironment.Close();
+                        _inProcNodeOwningOperatingEnvironment.Dispose();
                         _inProcNodeOwningOperatingEnvironment = null;
                     }
 
@@ -361,18 +364,30 @@ namespace Microsoft.Build.BackEnd
 
             _packetFactory = factory;
             _inProcNode = new InProcNode(_componentHost, endpoints.NodeEndpoint);
-
+#if FEATURE_THREAD_CULTURE
             _inProcNodeThread = new Thread(InProcNodeThreadProc, BuildParameters.ThreadStackSize);
+#else
+                CultureInfo culture = _componentHost.BuildParameters.Culture;
+                CultureInfo uiCulture = _componentHost.BuildParameters.UICulture;
+                _inProcNodeThread = new Thread(() =>
+                {
+                    CultureInfo.CurrentCulture = culture;
+                    CultureInfo.CurrentUICulture = uiCulture;
+                    InProcNodeThreadProc();
+                });
+#endif
             _inProcNodeThread.Name = String.Format(CultureInfo.CurrentCulture, "In-proc Node ({0})", _componentHost.Name);
             _inProcNodeThread.IsBackground = true;
+#if FEATURE_THREAD_CULTURE
             _inProcNodeThread.CurrentCulture = _componentHost.BuildParameters.Culture;
             _inProcNodeThread.CurrentUICulture = _componentHost.BuildParameters.UICulture;
+#endif
             _inProcNodeThread.Start();
 
             _inProcNodeEndpoint.Connect(this);
 
             int connectionTimeout = CommunicationsUtilities.NodeConnectionTimeout;
-            bool connected = _endpointConnectedEvent.WaitOne(connectionTimeout, false);
+            bool connected = _endpointConnectedEvent.WaitOne(connectionTimeout);
             ErrorUtilities.VerifyThrow(connected, "In-proc node failed to start up within {0}ms", connectionTimeout);
             return true;
         }

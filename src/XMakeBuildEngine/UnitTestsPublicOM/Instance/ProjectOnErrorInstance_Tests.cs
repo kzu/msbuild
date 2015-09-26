@@ -1,8 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //-----------------------------------------------------------------------
-// <copyright file="ProjectOnErrorInstance_Tests.cs" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
 // </copyright>
 // <summary>Tests for the ProjectOnErrorInstance class.</summary>
 //-----------------------------------------------------------------------
@@ -12,27 +10,25 @@ using System.Xml;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
-
-using NUnit.Framework;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests.OM.Instance
 {
     /// <summary>
     /// Tests for the ProjectOnErrorInstance class.
     /// </summary>
-    [TestFixture]
     public class ProjectOnErrorInstance_Tests
     {
         /// <summary>
         /// Test accessors
         /// </summary>
-        [Test]
+        [Fact]
         public void Accessors()
         {
             var onError = GetSampleOnErrorInstance();
 
-            Assert.AreEqual("et", onError.ExecuteTargets);
-            Assert.AreEqual("c", onError.Condition);
+            Assert.Equal("et", onError.ExecuteTargets);
+            Assert.Equal("c", onError.Condition);
         }
 
         /// <summary>

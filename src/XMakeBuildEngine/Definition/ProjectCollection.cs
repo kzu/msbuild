@@ -52,7 +52,12 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Read toolset information from the registry (HKLM\Software\Microsoft\MSBuild\ToolsVersions).
         /// </summary>
-        Registry = 2
+        Registry = 2,
+
+        /// <summary>
+        /// Read toolset information from the current exe path
+        /// </summary>
+        Local = 4
     }
 
     /// <summary>
@@ -185,7 +190,9 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         static ProjectCollection()
         {
+#if FEATURE_APPDOMAIN_UNHANDLED_EXCEPTION
             AppDomain.CurrentDomain.UnhandledException += ExceptionHandling.UnhandledExceptionHandler;
+#endif
         }
 
         /// <summary>
@@ -382,7 +389,7 @@ namespace Microsoft.Build.Evaluation
                     // work when Microsoft.Build.dll has been shadow-copied, for example
                     // in scenarios where NUnit is loading Microsoft.Build.
                     var versionInfo = FileVersionInfo.GetVersionInfo(FileUtilities.ExecutingAssemblyPath);
-                    s_engineVersion = new Version (versionInfo.ProductMajorPart, versionInfo.ProductMinorPart, versionInfo.ProductBuildPart, versionInfo.ProductPrivatePart);
+                    s_engineVersion = new Version(versionInfo.ProductMajorPart, versionInfo.ProductMinorPart, versionInfo.ProductBuildPart, versionInfo.ProductPrivatePart);
                 }
 
                 return s_engineVersion;

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -7,9 +7,9 @@ using System.Resources;
 using System.Reflection;
 using System.Collections;
 using System.Globalization;
-using NUnit.Framework;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests.TrackedDependencies
 {
@@ -27,11 +27,7 @@ namespace Microsoft.Build.UnitTests.TrackedDependencies
      * is somewhat of a no-no for task assemblies.
      * 
      **************************************************************************/
-#if WHIDBEY_BUILD
-    sealed internal class MockEngine : IBuildEngine
-#else
     sealed internal class MockEngine : IBuildEngine2
-#endif
     {
         private bool _isRunningMultipleNodes;
         private int _messages = 0;
@@ -202,8 +198,7 @@ namespace Microsoft.Build.UnitTests.TrackedDependencies
                 _upperLog = _upperLog.ToUpperInvariant();
             }
 
-            Assert.IsTrue
-            (
+            Assert.True(
                 _upperLog.Contains
                 (
                     contains.ToUpperInvariant()
@@ -223,13 +218,10 @@ namespace Microsoft.Build.UnitTests.TrackedDependencies
                 _upperLog = _upperLog.ToUpperInvariant();
             }
 
-            Assert.IsTrue
-            (
-                !_upperLog.Contains
+            Assert.False(_upperLog.Contains
                 (
                     contains.ToUpperInvariant()
-                )
-            );
+                ));
         }
     }
 }

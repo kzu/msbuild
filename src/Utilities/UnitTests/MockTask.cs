@@ -1,14 +1,14 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Reflection;
 using System.Resources;
-
-using NUnit.Framework;
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Microsoft.Build.Shared;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
@@ -30,7 +30,7 @@ namespace Microsoft.Build.UnitTests
         private void RegisterResources()
         {
             ResourceManager rm = new ResourceManager("Microsoft.Build.Utilities.UnitTests.strings",
-                typeof(MockTask).Assembly);
+                typeof(MockTask).GetTypeInfo().Assembly);
             this.Log.TaskResources = rm;
         }
 

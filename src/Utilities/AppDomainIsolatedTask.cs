@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#if FEATURE_APPDOMAIN
 using System;
 using System.Resources;
 using System.Security;
 
 using Microsoft.Build.Framework;
-using Microsoft.Build.Tasks;
 
 namespace Microsoft.Build.Utilities
 {
@@ -159,7 +159,7 @@ namespace Microsoft.Build.Utilities
         public abstract bool Execute();
 
         /// <summary>
-        /// Overriden to give tasks deriving from this class infinite lease time. Otherwise we end up with a limited
+        /// Overridden to give tasks deriving from this class infinite lease time. Otherwise we end up with a limited
         /// lease (5 minutes I think) and task instances can expire if they take long time processing.
         /// </summary>
         [SecurityCritical]
@@ -172,3 +172,4 @@ namespace Microsoft.Build.Utilities
         #endregion
     }
 }
+#endif

@@ -893,7 +893,7 @@ namespace Microsoft.Build.CommandLine
                         {
                             if (_updateEnvironmentAndLog)
                             {
-                                LogMessageFromResource(MessageImportance.Low, "ModifyingTaskHostEnvironmentVariable", variable, newValue ?? String.Empty, environmentValue ?? String.Empty);
+                                LogMessageFromResource(MessageImportance.Low, "ModifyingTaskHostEnvironmentVariable", variable, newValue, environmentValue ?? String.Empty);
                             }
 
                             updatedEnvironment[variable] = newValue;
@@ -1033,7 +1033,7 @@ namespace Microsoft.Build.CommandLine
         {
             if (_nodeEndpoint != null && _nodeEndpoint.LinkStatus == LinkStatus.Active)
             {
-                if (!e.GetType().IsSerializable)
+                if (!e.GetType().GetTypeInfo().IsSerializable)
                 {
                     // log a warning and bail.  This will end up re-calling SendBuildEvent, but we know for a fact
                     // that the warning that we constructed is serializable, so everything should be good.  

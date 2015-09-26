@@ -8,16 +8,13 @@
 using System;
 
 using Microsoft.Build.Framework;
-using NUnit.Framework;
-
-#pragma warning disable 0219
+using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
     /// <summary>
     /// Verify the functioning of the TaskFinishedEventArgs class.
     /// </summary>
-    [TestFixture]
     public class TaskFinishedEventArgs_Tests
     {
         /// <summary>
@@ -28,7 +25,7 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Trivially exercise event args default ctors to boost Frameworks code coverage
         /// </summary>
-        [Test]
+        [Fact]
         public void EventArgsCtors()
         {
             TaskFinishedEventArgs targetFinishedEvent = new TaskFinishedEventArgs2();
@@ -39,7 +36,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Create a derrived class so that we can test the default constructor in order to increase code coverage and 
+        /// Create a derived class so that we can test the default constructor in order to increase code coverage and 
         /// verify this code path does not cause any exceptions.
         /// </summary>
         private class TaskFinishedEventArgs2 : TaskFinishedEventArgs

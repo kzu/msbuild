@@ -723,7 +723,11 @@ namespace Microsoft.Build.Execution
         /// An item without an item type. Cast to an ITaskItem, this is 
         /// what is given to tasks. It is also used for target outputs.
         /// </summary>
-        internal sealed class TaskItem : MarshalByRefObject, ITaskItem, ITaskItem2, IItem<ProjectMetadataInstance>, INodePacketTranslatable, IEquatable<TaskItem>
+        internal sealed class TaskItem :
+#if FEATURE_APPDOMAIN
+            MarshalByRefObject,
+#endif
+            ITaskItem, ITaskItem2, IItem<ProjectMetadataInstance>, INodePacketTranslatable, IEquatable<TaskItem>
         {
             /// <summary>
             /// The source file that defined this item.
@@ -1145,6 +1149,7 @@ namespace Microsoft.Build.Execution
                 return _includeEscaped;
             }
 
+#if FEATURE_APPDOMAIN
             /// <summary>
             /// Overridden to give this class infinite lease time. Otherwise we end up with a limited
             /// lease (5 minutes I think) and instances can expire if they take long time processing.
@@ -1154,6 +1159,7 @@ namespace Microsoft.Build.Execution
                 // null means infinite lease time
                 return null;
             }
+#endif
 
             #region IItem and ITaskItem2 Members
 
@@ -1454,7 +1460,7 @@ namespace Microsoft.Build.Execution
                 // We need to change this to upper case to ensure that task items whose item specs differ only by 
                 // casing still have the same hash code, since this is used to determine if we have duplicates when 
                 // we do duplicate removal.
-                return ItemSpec.ToUpper(CultureInfo.InvariantCulture).GetHashCode();
+                return ItemSpec.ToUpperInvariant().GetHashCode();
             }
 
             /// <summary>

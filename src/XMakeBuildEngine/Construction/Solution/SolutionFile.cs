@@ -355,7 +355,7 @@ namespace Microsoft.Build.Construction
             {
                 // Open the file
                 fileStream = File.OpenRead(solutionFile);
-                reader = new StreamReader(fileStream, Encoding.Default); // HIGHCHAR: If solution files have no byte-order marks, then assume ANSI rather than ASCII.
+                reader = new StreamReader(fileStream, Encoding.GetEncoding(0)); // HIGHCHAR: If solution files have no byte-order marks, then assume ANSI rather than ASCII.
 
                 // Read first 4 lines of the solution file. 
                 // The header is expected to be in line 1 or 2
@@ -417,12 +417,12 @@ namespace Microsoft.Build.Construction
             {
                 if (fileStream != null)
                 {
-                    fileStream.Close();
+                    fileStream.Dispose();
                 }
 
                 if (reader != null)
                 {
-                    reader.Close();
+                    reader.Dispose();
                 }
             }
 
@@ -500,7 +500,7 @@ namespace Microsoft.Build.Construction
                 fileStream = File.OpenRead(_solutionFile);
                 // Store the directory of the file as the current directory may change while we are processes the file
                 _solutionFileDirectory = Path.GetDirectoryName(_solutionFile);
-                _reader = new StreamReader(fileStream, Encoding.Default); // HIGHCHAR: If solution files have no byte-order marks, then assume ANSI rather than ASCII.
+                _reader = new StreamReader(fileStream, Encoding.GetEncoding(0)); // HIGHCHAR: If solution files have no byte-order marks, then assume ANSI rather than ASCII.
                 this.ParseSolution();
             }
             catch (Exception e)
@@ -512,12 +512,12 @@ namespace Microsoft.Build.Construction
             {
                 if (fileStream != null)
                 {
-                    fileStream.Close();
+                    fileStream.Dispose();
                 }
 
                 if (_reader != null)
                 {
-                    _reader.Close();
+                    _reader.Dispose();
                 }
             }
         }
@@ -1318,6 +1318,11 @@ namespace Microsoft.Build.Construction
                     break;
                 }
 
+                if (String.IsNullOrWhiteSpace(str))
+                {
+                    continue;
+                }
+
                 Match match = s_crackPropertyLine.Match(str);
                 ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(match.Success, "SubCategoryForSolutionParsingErrors",
                     new BuildEventFileInfo(FullPath, _currentLineNumber, 0), "SolutionParseNestedProjectError");
@@ -1360,6 +1365,11 @@ namespace Microsoft.Build.Construction
                 if ((str == null) || (str == "EndGlobalSection"))
                 {
                     break;
+                }
+
+                if (String.IsNullOrWhiteSpace(str))
+                {
+                    continue;
                 }
 
                 string[] configurationNames = str.Split(nameValueSeparators);
@@ -1419,6 +1429,11 @@ namespace Microsoft.Build.Construction
                 if ((str == null) || (str == "EndGlobalSection"))
                 {
                     break;
+                }
+
+                if (String.IsNullOrWhiteSpace(str))
+                {
+                    continue;
                 }
 
                 string[] nameValue = str.Split(new char[] { '=' });

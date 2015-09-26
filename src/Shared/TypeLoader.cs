@@ -251,7 +251,7 @@ namespace Microsoft.Build.Shared
             /// <summary>
             /// Assembly, if any, that we loaded for this type.
             /// We use this information to set the LoadedType.LoadedAssembly so that this object can be used
-            /// to help created AppDomains to resolve those that it could not load successfuly
+            /// to help created AppDomains to resolve those that it could not load successfully
             /// </summary>
             private Assembly _loadedAssembly;
 
@@ -281,7 +281,7 @@ namespace Microsoft.Build.Shared
                 {
                     Type type = null;
 
-                    // Maybe we've already cracked open this assembly before. Check to see if the typeName is in the list we dont look for partial matches here
+                    // Maybe we've already cracked open this assembly before. Check to see if the typeName is in the list we don't look for partial matches here
                     // this is an optimization.
                     bool foundType = _typeNameToType.TryGetValue(typeName, out type);
                     if (!foundType)
@@ -363,11 +363,20 @@ namespace Microsoft.Build.Shared
                 {
                     if (_assemblyLoadInfo.AssemblyName != null)
                     {
+#if FEATURE_ASSEMBLY_LOADFROM
                         _loadedAssembly = Assembly.Load(_assemblyLoadInfo.AssemblyName);
+#else
+                        _loadedAssembly = Assembly.Load(new AssemblyName(_assemblyLoadInfo.AssemblyName));
+#endif
                     }
                     else
                     {
+#if FEATURE_ASSEMBLY_LOADFROM
                         _loadedAssembly = Assembly.UnsafeLoadFrom(_assemblyLoadInfo.AssemblyFile);
+#else
+                        string simpleName = Path.GetFileNameWithoutExtension(_assemblyLoadInfo.AssemblyFile);
+                        _loadedAssembly = Assembly.Load(new AssemblyName(simpleName));
+#endif
                     }
                 }
                 catch (ArgumentException e)

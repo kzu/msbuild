@@ -3,7 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+#if FEATURE_SYSTEM_CONFIGURATION
 using System.Configuration;
+#endif
 using System.IO;
 using System.Text;
 using System.Globalization;
@@ -13,6 +15,8 @@ using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation
 {
+#if FEATURE_SYSTEM_CONFIGURATION
+
     /// <summary>
     /// Helper class for reading toolsets out of the configuration file.
     /// </summary>
@@ -54,7 +58,7 @@ namespace Microsoft.Build.Evaluation
                             configuration.SaveAs(tempFileName + ".config");
 
                             // Open the configuration again, the new type for the section handler will do its stuff
-                            // Note that the OpenExeConfiguraion call uses the config filename *without* the .config
+                            // Note that the OpenExeConfiguration call uses the config filename *without* the .config
                             // extension
                             configuration = ConfigurationManager.OpenExeConfiguration(tempFileName);
 
@@ -562,4 +566,5 @@ namespace Microsoft.Build.Evaluation
             }
         }
     }
+#endif
 }

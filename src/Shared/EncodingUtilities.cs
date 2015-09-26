@@ -25,8 +25,12 @@ namespace Microsoft.Build.Shared
                     return s_currentOemEncoding;
 
                 // fall back to default ANSI encoding if we have problems
+#if FEATURE_ENCODING_DEFAULT
                 s_currentOemEncoding = Encoding.Default;
-#if !MONO
+#else
+                s_currentOemEncoding = Encoding.UTF8;
+#endif
+#if !MONO && FEATURE_ENCODING_DEFAULT
                 try
                 {
                     // get the current OEM code page

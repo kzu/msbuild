@@ -12,12 +12,15 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Threading;
+#if FEATURE_BINARY_SERIALIZATION
 using System.Runtime.Serialization.Formatters.Binary;
+#endif
 using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using System.Globalization;
+using System.Reflection;
 
 namespace Microsoft.Build.BackEnd
 {
@@ -322,6 +325,7 @@ namespace Microsoft.Build.BackEnd
                 value = (T)Enum.ToObject(enumType, numericValue);
             }
 
+#if FEATURE_BINARY_SERIALIZATION
             /// <summary>
             /// Translates a value using the .Net binary formatter.
             /// </summary>
@@ -337,6 +341,7 @@ namespace Microsoft.Build.BackEnd
                 BinaryFormatter formatter = new BinaryFormatter();
                 value = (T)formatter.Deserialize(_packetStream);
             }
+#endif
 
             /// <summary>
             /// Translates an object implementing INodePacketTranslatable.
@@ -780,11 +785,12 @@ namespace Microsoft.Build.BackEnd
             public void TranslateEnum<T>(ref T value, int numericValue)
             {
                 Type enumType = value.GetType();
-                ErrorUtilities.VerifyThrow(enumType.IsEnum, "Must pass an enum type.");
+                ErrorUtilities.VerifyThrow(enumType.GetTypeInfo().IsEnum, "Must pass an enum type.");
 
                 _writer.Write(numericValue);
             }
 
+#if FEATURE_BINARY_SERIALIZATION
             /// <summary>
             /// Translates a value using the .Net binary formatter.
             /// </summary>
@@ -800,6 +806,7 @@ namespace Microsoft.Build.BackEnd
                 BinaryFormatter formatter = new BinaryFormatter();
                 formatter.Serialize(_packetStream, value);
             }
+#endif
 
             /// <summary>
             /// Translates an object implementing INodePacketTranslatable.

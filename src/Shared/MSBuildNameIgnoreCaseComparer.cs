@@ -21,7 +21,9 @@ namespace Microsoft.Build.Collections
     /// 2) It uses "unsafe" pointers to maximize performance of those operations
     /// 3) It takes advantage of limitations on MSBuild Property/Item names to cheaply do case insensitive comparison.
     /// </summary>
+#if FEATURE_BINARY_SERIALIZATION
     [Serializable]
+#endif
     internal class MSBuildNameIgnoreCaseComparer : EqualityComparer<string>, IEqualityComparer<IKeyed>
     {
         /// <summary>
@@ -70,7 +72,7 @@ namespace Microsoft.Build.Collections
         private bool _immutable;
 
         /// <summary>
-        /// We need a static contructor to retrieve the running ProcessorArchitecture that way we can
+        /// We need a static constructor to retrieve the running ProcessorArchitecture that way we can
         /// Avoid using optimized code that will not run correctly on IA64 due to alignment issues
         /// </summary>
         static MSBuildNameIgnoreCaseComparer()
@@ -134,7 +136,7 @@ namespace Microsoft.Build.Collections
             }
 
 #if RETAIL
-            if ((runningProcessorArchitecture != NativeMethodsShared.PROCESSOR_ARCHITECTURE_IA64) && (runningProcessorArchitecture != NativeMethodsShared.PROCESSOR_ARCHITECTURE_ARM))
+            if ((s_runningProcessorArchitecture != NativeMethodsShared.PROCESSOR_ARCHITECTURE_IA64) && (s_runningProcessorArchitecture != NativeMethodsShared.PROCESSOR_ARCHITECTURE_ARM))
             {
                 // The use of unsafe here is quite a bit faster than the regular
                 // mechanism in the BCL. This is because we can make assumptions
@@ -353,7 +355,7 @@ namespace Microsoft.Build.Collections
                 }
             }
 #if RETAIL
-            if ((runningProcessorArchitecture != NativeMethodsShared.PROCESSOR_ARCHITECTURE_IA64) && (runningProcessorArchitecture != NativeMethodsShared.PROCESSOR_ARCHITECTURE_ARM))
+            if ((s_runningProcessorArchitecture != NativeMethodsShared.PROCESSOR_ARCHITECTURE_IA64) && (s_runningProcessorArchitecture != NativeMethodsShared.PROCESSOR_ARCHITECTURE_ARM))
             {
                 unsafe
                 {

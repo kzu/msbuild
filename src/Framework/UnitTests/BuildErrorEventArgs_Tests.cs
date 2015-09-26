@@ -8,14 +8,13 @@
 using System;
 
 using Microsoft.Build.Framework;
-using NUnit.Framework;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
     /// <summary>
     /// Verify the functioning of the BuildErrorEventArg class.
     /// </summary>
-    [TestFixture]
     public class BuildErrorEventArgs_Tests
     {
         /// <summary>
@@ -26,7 +25,7 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Trivially exercise event args default ctors to boost Frameworks code coverage
         /// </summary>
-        [Test]
+        [Fact]
         public void EventArgsCtors()
         {
             BuildErrorEventArgs beea = new BuildErrorEventArgs2();
@@ -39,7 +38,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Create a derrived class so that we can test the default constructor in order to increase code coverage and 
+        /// Create a derived class so that we can test the default constructor in order to increase code coverage and 
         /// verify this code path.
         /// </summary>
         private class BuildErrorEventArgs2 : BuildErrorEventArgs

@@ -1,13 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
 using System.IO;
 using System.Reflection;
-using NUnit.Framework;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
@@ -21,7 +21,11 @@ namespace Microsoft.Build.UnitTests
          */
         static internal Stream StringToStream(string value)
         {
+#if FEATURE_ENCODING_DEFAULT
             return StringToStream(value, System.Text.Encoding.Default); // We want this to be Default which is ANSI
+#else
+            return StringToStream(value, System.Text.Encoding.UTF8); // We want this to be Default which is ANSI
+#endif
         }
 
         /*

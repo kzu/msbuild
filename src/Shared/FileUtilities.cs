@@ -25,7 +25,7 @@ namespace Microsoft.Build.Shared
     {
         // A list of possible test runners. If the program running has one of these substrings in the name, we assume
         // this is a test harness.
-        private static readonly string[] s_testRunners = {
+        private static readonly string[] s_testRunners = { "XUNIT",
                                                   "NUNIT", "DEVENV", "MSTEST", "VSTEST", "TASKRUNNER", "VSTESTHOST",
                                                   "QTAGENT32", "CONCURRENT", "RESHARPER", "MDHOST", "TE.PROCESSHOST"
                                               };
@@ -54,20 +54,24 @@ namespace Microsoft.Build.Shared
         /// </summary>
         private static void GetTestExecutionInfo()
         {
+#if FEATURE_GET_COMMANDLINE
             // Get the executable we are running
             var program = Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]);
+#else
+            var program = Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().MainModule.FileName);
+#endif
 
             // Check if it matches the pattern
             s_runningTests = program != null
                            && s_testRunners.Any(
-                               s => program.IndexOf(s, StringComparison.InvariantCultureIgnoreCase) == -1);
+                               s => program.IndexOf(s, StringComparison.OrdinalIgnoreCase) == -1);
 
             // Does not look like it's a test, but check the process name
             if (!s_runningTests)
             {
                 program = Process.GetCurrentProcess().ProcessName;
                 s_runningTests =
-                    s_testRunners.Any(s => program.IndexOf(s, StringComparison.InvariantCultureIgnoreCase) == -1);
+                    s_testRunners.Any(s => program.IndexOf(s, StringComparison.OrdinalIgnoreCase) == -1);
             }
 
             // Definitely not a test, leave
@@ -88,7 +92,7 @@ namespace Microsoft.Build.Shared
                 if (dir == null)
                 {
                     // Can't get the assembly path, use current directory
-                    dir = Environment.CurrentDirectory;
+                    dir = Directory.GetCurrentDirectory();
                 }
                 else
                 {
@@ -123,7 +127,7 @@ namespace Microsoft.Build.Shared
         {
             if (cacheDirectory == null)
             {
-                cacheDirectory = Path.Combine(Path.GetTempPath(), String.Format(Thread.CurrentThread.CurrentUICulture, "MSBuild{0}", Process.GetCurrentProcess().Id));
+                cacheDirectory = Path.Combine(Path.GetTempPath(), String.Format(CultureInfo.CurrentUICulture, "MSBuild{0}", Process.GetCurrentProcess().Id));
             }
 
             return cacheDirectory;
@@ -433,7 +437,7 @@ namespace Microsoft.Build.Shared
             // have no slashes.
             if (NativeMethodsShared.IsWindows || string.IsNullOrWhiteSpace(value) ||
                 value.StartsWith("$(") || value.StartsWith("@(") || value.StartsWith("\\\\") ||
-                value.IndexOfAny(new [] {'/', '\\'}) == -1)
+                value.IndexOfAny(new[] { '/', '\\' }) == -1)
             {
                 return value;
             }
@@ -539,7 +543,7 @@ namespace Microsoft.Build.Shared
             string fileExtension = Path.GetExtension(fileName);
             foreach (string extension in allowedExtensions)
             {
-                if (String.Compare(fileExtension, extension, true /* ignore case */, CultureInfo.CurrentCulture) == 0)
+                if (String.Compare(fileExtension, extension, StringComparison.CurrentCultureIgnoreCase) == 0)
                 {
                     return true;
                 }
@@ -562,17 +566,38 @@ namespace Microsoft.Build.Shared
         {
             get
             {
+#if FEATURE_ASSEMBLY_LOCATION
                 try
                 {
-                    return Path.GetFullPath(new Uri(Assembly.GetExecutingAssembly().EscapedCodeBase).LocalPath);
+                    return Path.GetFullPath(new Uri(typeof(FileUtilities).GetTypeInfo().Assembly.EscapedCodeBase).LocalPath);
                 }
                 catch (InvalidOperationException e)
                 {
                     // Workaround for issue where people are getting relative uri crash here.
                     // Last resort. We may have a problem when the assembly is shadow-copied.
                     ExceptionHandling.DumpExceptionToFile(e);
-                    return System.Reflection.Assembly.GetExecutingAssembly().Location;
+                    return typeof(FileUtilities).GetTypeInfo().Assembly.Location;
                 }
+#else
+                //  If we can't get the path to an assembly (ie on .NET Core), then assume that this assembly has been
+                //  loaded from the same directory as the main application
+                var appPath = Process.GetCurrentProcess().MainModule.FileName;
+                var appDirectory = Path.GetDirectoryName(appPath);
+
+                string extension = ".dll";
+                string assemblySimpleName = typeof(FileUtilities).GetTypeInfo().Assembly.GetName().Name;
+                if (assemblySimpleName.Equals("msbuild", StringComparison.OrdinalIgnoreCase))
+                {
+                    extension = ".exe";
+                }
+                var assemblyPath = Path.Combine(appDirectory, assemblySimpleName + extension);
+                assemblyPath = Path.GetFullPath(assemblyPath);
+                if (!File.Exists(assemblyPath))
+                {
+                    throw new FileNotFoundException(assemblyPath);
+                }
+                return assemblyPath;
+#endif
             }
         }
 
@@ -605,7 +630,13 @@ namespace Microsoft.Build.Shared
                     if (NativeMethodsShared.IsWindows)
                     {
                         StringBuilder sb = new StringBuilder(NativeMethodsShared.MAX_PATH);
-                        if (NativeMethodsShared.GetModuleFileName(NativeMethodsShared.NullHandleRef, sb, sb.Capacity) == 0)
+                        if (NativeMethodsShared.GetModuleFileName(
+#if FEATURE_HANDLEREF
+                            NativeMethodsShared.NullHandleRef,
+#else
+                            IntPtr.Zero,
+#endif
+                            sb, sb.Capacity) == 0)
                         {
                             throw new System.ComponentModel.Win32Exception();
                         }
@@ -613,9 +644,11 @@ namespace Microsoft.Build.Shared
                     }
                     else
                     {
-                        s_executablePath = Environment.GetCommandLineArgs()[0] ?? Path.Combine(
-                            Path.GetDirectoryName(ExecutingAssemblyPath) ?? Environment.CurrentDirectory,
-                            "MSBuild.exe");
+                        s_executablePath =
+#if FEATURE_GET_COMMANDLINE
+                            Environment.GetCommandLineArgs()[0] ??
+#endif
+                            Path.Combine(Path.GetDirectoryName(ExecutingAssemblyPath) ?? Directory.GetCurrentDirectory(), "MSBuild.exe");
                     }
                 }
 
@@ -1035,7 +1068,7 @@ namespace Microsoft.Build.Shared
         {
             // >= not > because MAX_PATH assumes a trailing null
             if (path.Length >= NativeMethodsShared.MAX_PATH ||
-               (!IsRootedNoThrow(path) && ((Environment.CurrentDirectory.Length + path.Length + 1 /* slash */) >= NativeMethodsShared.MAX_PATH)))
+               (!IsRootedNoThrow(path) && ((Directory.GetCurrentDirectory().Length + path.Length + 1 /* slash */) >= NativeMethodsShared.MAX_PATH)))
             {
                 // Attempt to make it shorter -- perhaps there are some \..\ elements
                 path = GetFullPathNoThrow(path);
@@ -1074,6 +1107,35 @@ namespace Microsoft.Build.Shared
                     GetTestExecutionInfo();
                 }
                 return s_currentExecutableOverride;
+            }
+        }
+
+        internal static StreamWriter OpenWrite(string path, bool append, Encoding encoding = null)
+        {
+            const int DefaultFileStreamBufferSize = 4096;
+            FileMode mode = append ? FileMode.Append : FileMode.Create;
+            Stream fileStream = new FileStream(path, mode, FileAccess.Write, FileShare.Read, DefaultFileStreamBufferSize, FileOptions.SequentialScan);
+            if (encoding == null)
+            {
+                return new StreamWriter(fileStream);
+            }
+            else
+            {
+                return new StreamWriter(fileStream, encoding);
+            }
+        }
+
+        internal static StreamReader OpenRead(string path, Encoding encoding = null)
+        {
+            const int DefaultFileStreamBufferSize = 4096;
+            Stream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultFileStreamBufferSize, FileOptions.SequentialScan);
+            if (encoding == null)
+            {
+                return new StreamReader(fileStream);
+            }
+            else
+            {
+                return new StreamReader(fileStream, encoding);
             }
         }
     }

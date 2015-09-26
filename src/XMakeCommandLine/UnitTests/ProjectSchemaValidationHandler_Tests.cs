@@ -1,6 +1,7 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#if FEATURE_XML_SCHEMA_VALIDATION
 using System;
 using System.IO;
 using System.Reflection;
@@ -10,11 +11,10 @@ using System.Xml;
 using Microsoft.Build.CommandLine;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using NUnit.Framework;
+using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
-    [TestFixture]
     public class ProjectSchemaValidationHandlerTest
     {
         /***********************************************************************
@@ -25,7 +25,7 @@ namespace Microsoft.Build.UnitTests
          * the project contents are invalid
          * 
          **********************************************************************/
-        [Test]
+        [Fact]
         public void VerifyInvalidProjectSchema
             (
             )
@@ -51,7 +51,7 @@ namespace Microsoft.Build.UnitTests
                     ");
                 string quotedProjectFilename = "\"" + projectFilename + "\"";
 
-                Assert.AreEqual(MSBuildApp.ExitType.InitializationError, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFilename + " /validate:\"" + msbuildTempXsdFilenames[0] + "\""));
+                Assert.Equal(MSBuildApp.ExitType.InitializationError, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFilename + " /validate:\"" + msbuildTempXsdFilenames[0] + "\""));
             }
             finally
             {
@@ -65,7 +65,7 @@ namespace Microsoft.Build.UnitTests
         /// Checks that an exception is thrown when the schema being validated
         /// against is itself invalid
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyInvalidSchemaItself1
             (
             )
@@ -90,7 +90,7 @@ namespace Microsoft.Build.UnitTests
                     ");
                 string quotedProjectFile = "\"" + projectFilename + "\"";
 
-                Assert.AreEqual(MSBuildApp.ExitType.InitializationError, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFile + " /validate:\"" + invalidSchemaFile + "\""));
+                Assert.Equal(MSBuildApp.ExitType.InitializationError, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFile + " /validate:\"" + invalidSchemaFile + "\""));
             }
             finally
             {
@@ -104,7 +104,7 @@ namespace Microsoft.Build.UnitTests
         /// Checks that an exception is thrown when the schema being validated
         /// against is itself invalid
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyInvalidSchemaItself2
             (
             )
@@ -142,7 +142,7 @@ namespace Microsoft.Build.UnitTests
 
                 string quotedProjectFile = "\"" + projectFilename + "\"";
 
-                Assert.AreEqual(MSBuildApp.ExitType.InitializationError, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFile + " /validate:\"" + invalidSchemaFile + "\""));
+                Assert.Equal(MSBuildApp.ExitType.InitializationError, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFile + " /validate:\"" + invalidSchemaFile + "\""));
             }
             finally
             {
@@ -160,7 +160,7 @@ namespace Microsoft.Build.UnitTests
          * specified in a string, where the project passed is valid
          * 
          **********************************************************************/
-        [Test]
+        [Fact]
         public void VerifyValidProjectSchema
             (
             )
@@ -182,7 +182,7 @@ namespace Microsoft.Build.UnitTests
                 msbuildTempXsdFilenames = PrepareSchemaFiles();
                 string quotedProjectFile = "\"" + projectFilename + "\"";
 
-                Assert.AreEqual(MSBuildApp.ExitType.Success, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFile + " /validate:\"" + msbuildTempXsdFilenames[0] + "\""));
+                Assert.Equal(MSBuildApp.ExitType.Success, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFile + " /validate:\"" + msbuildTempXsdFilenames[0] + "\""));
 
                 //ProjectSchemaValidationHandler.VerifyProjectSchema
                 //    (
@@ -204,7 +204,7 @@ namespace Microsoft.Build.UnitTests
         /// We should not validate imported files against the schema in V1, so this
         /// should not be caught by the schema
         /// </summary>
-        [Test]
+        [Fact]
         public void VerifyInvalidImportNotCaughtBySchema
             (
             )
@@ -235,7 +235,7 @@ namespace Microsoft.Build.UnitTests
                 msbuildTempXsdFilenames = PrepareSchemaFiles();
                 string quotedProjectFile = "\"" + projectFilename + "\"";
 
-                Assert.AreEqual(MSBuildApp.ExitType.Success, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFile + " /validate:\"" + msbuildTempXsdFilenames[0] + "\""));
+                Assert.Equal(MSBuildApp.ExitType.Success, MSBuildApp.Execute(@"c:\foo\msbuild.exe " + quotedProjectFile + " /validate:\"" + msbuildTempXsdFilenames[0] + "\""));
 
                 //ProjectSchemaValidationHandler.VerifyProjectSchema
                 //    (
@@ -369,3 +369,4 @@ namespace Microsoft.Build.UnitTests
         #endregion // Helper Functions
     }
 }
+#endif

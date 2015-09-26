@@ -6,17 +6,12 @@
 //-----------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Diagnostics;
-using Microsoft.Build.Framework;
-using Microsoft.Build.Evaluation;
-using Microsoft.Build.Shared;
 
-using LoggerDescription = Microsoft.Build.Logging.LoggerDescription;
-using BuildParameters = Microsoft.Build.Execution.BuildParameters;
-
+using Microsoft.Build.Execution;
+using Microsoft.Build.Logging;
+#if FEATURE_APPDOMAIN
+#endif
 namespace Microsoft.Build.BackEnd
 {
     /// <summary>
@@ -34,10 +29,12 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private BuildParameters _buildParameters;
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// The app domain information needed for setting up AppDomain-isolated tasks.
         /// </summary>
         private AppDomainSetup _appDomainSetup;
+#endif
 
         /// <summary>
         /// The forwarding loggers to use.
@@ -55,14 +52,18 @@ namespace Microsoft.Build.BackEnd
             (
             int nodeId,
             BuildParameters buildParameters,
-            LoggerDescription[] forwardingLoggers,
-            AppDomainSetup appDomainSetup
+            LoggerDescription[] forwardingLoggers
+#if FEATURE_APPDOMAIN
+            , AppDomainSetup appDomainSetup
+#endif
             )
         {
             _nodeId = nodeId;
             _buildParameters = buildParameters;
             _forwardingLoggers = forwardingLoggers;
+#if FEATURE_APPDOMAIN
             _appDomainSetup = appDomainSetup;
+#endif
         }
 
         /// <summary>
@@ -106,6 +107,7 @@ namespace Microsoft.Build.BackEnd
             { return _forwardingLoggers; }
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// Retrieves the app domain setup information.
         /// </summary>
@@ -115,6 +117,7 @@ namespace Microsoft.Build.BackEnd
             get
             { return _appDomainSetup; }
         }
+#endif
 
         #region INodePacket Members
 
@@ -141,7 +144,9 @@ namespace Microsoft.Build.BackEnd
             translator.Translate(ref _nodeId);
             translator.Translate(ref _buildParameters, BuildParameters.FactoryForDeserialization);
             translator.TranslateArray(ref _forwardingLoggers, LoggerDescription.FactoryForTranslation);
+#if FEATURE_BINARY_SERIALIZATION
             translator.TranslateDotNet(ref _appDomainSetup);
+#endif
         }
 
         /// <summary>
@@ -160,7 +165,11 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         internal NodeConfiguration Clone()
         {
-            return new NodeConfiguration(_nodeId, _buildParameters, _forwardingLoggers, _appDomainSetup);
+            return new NodeConfiguration(_nodeId, _buildParameters, _forwardingLoggers
+#if FEATURE_APPDOMAIN
+                , _appDomainSetup
+#endif
+                );
         }
     }
 }

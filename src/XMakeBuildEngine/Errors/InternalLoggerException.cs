@@ -3,7 +3,9 @@
 
 using System;
 using System.Runtime.Serialization;
+#if FEATURE_SECURITY_PERMISSIONS
 using System.Security.Permissions;
+#endif
 
 using Microsoft.Build.Shared;
 using Microsoft.Build.Framework;
@@ -99,6 +101,7 @@ namespace Microsoft.Build.Exceptions
             _initializationException = initializationException;
         }
 
+#if FEATURE_BINARY_SERIALIZATION
         #region Serialization (update when adding new class members)
 
         /// <summary>
@@ -151,6 +154,7 @@ namespace Microsoft.Build.Exceptions
             // Have nothing to do
         }
         #endregion
+#endif
 
         #region Properties
 
@@ -236,7 +240,9 @@ namespace Microsoft.Build.Exceptions
         private string _helpKeyword;
 
         // This flag is set to indicate that the exception occured during logger initialization
+#if FEATURE_BINARY_SERIALIZATION
         [OptionalField(VersionAdded = 2)]
+#endif
         private bool _initializationException;
     }
 }

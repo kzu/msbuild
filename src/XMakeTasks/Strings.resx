@@ -671,7 +671,7 @@
     <comment>{StrBegin="MSB3150: "}</comment>
   </data>
   <data name="GenerateBootstrapper.PackageFileNotFound">
-    <value>MSB3152: To enable 'Download prerequisites from the same location as my application' in the Prerequisites dialog box, you must download file '{0}' for item '{1}' to your local machine. For more information, see http://go.microsoft.com/fwlink/?LinkId=239883.</value>
+    <value>MSB3152: To enable 'Download prerequisites from the same location as my application' in the Prerequisites dialog box, you must download file '{0}' for item '{1}' to your local machine. For more information, see http://go.microsoft.com/fwlink/?LinkId=616018.</value>
     <comment>{StrBegin="MSB3152: "}</comment>
   </data>
   <data name="GenerateBootstrapper.PackageResourceFileNotFound">
@@ -1937,6 +1937,10 @@
   <data name="SignFile.TargetFileNotFound">
     <value>MSB3484: Signing target '{0}' could not be found.</value>
     <comment>{StrBegin="MSB3484: "}</comment>
+  </data>
+  <data name="SignFile.CertMissingPrivateKey">
+    <value>MSB3487: The signing certificate does not include private key information.</value>
+    <comment>{StrBegin="MSB3487: "}</comment>
   </data>
   <!--
         The StrongNameUtils message bucket is: MSB3351 - MSB3360

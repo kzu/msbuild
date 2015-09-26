@@ -5,18 +5,22 @@
 // <summary>Provides debugging support for state machines.</summary>
 //-----------------------------------------------------------------------
 
+#if FEATURE_MSBUILD_DEBUGGER
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.SymbolStore;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
+
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Shared;
+#if FEATURE_DEBUGGER
+using System.Diagnostics.SymbolStore;
+#endif
 
 namespace Microsoft.Build.Debugging
 {
@@ -78,10 +82,12 @@ namespace Microsoft.Build.Debugging
         /// </summary>
         private static MethodInfo s_islandCallback;
 
+#if FEATURE_DEBUGGER
         /// <summary>
         /// Cached mapping of file path to symbol store documents
         /// </summary>
         private static Dictionary<string, ISymbolDocumentWriter> s_sources = new Dictionary<string, ISymbolDocumentWriter>(StringComparer.OrdinalIgnoreCase);
+#endif
 
         /// <summary>
         /// The single dynamic module used.
@@ -202,7 +208,7 @@ namespace Microsoft.Build.Debugging
             fileName = fileName ?? "MSBuild";
 
             int suffix = 0;
-            while (s_dynamicModule.GetType(fileName) != null)
+            while (s_dynamicModule.GetType(fileName, false, false) != null)
             {
                 fileName += suffix;
                 suffix++;
@@ -220,7 +226,7 @@ namespace Microsoft.Build.Debugging
 
                 string methodName = CreateIsland(type, state);
 
-                state.RecordMethodInfo(type, methodName);
+                state.RecordMethodInfo(type.CreateTypeInfo().AsType(), methodName);
 
                 s_allBakedStates.Add(state.Location, state);
             }
@@ -229,7 +235,7 @@ namespace Microsoft.Build.Debugging
 
             // Although type is going out of scope now, it will
             // subsequently be accessed by its name
-            type.CreateType();
+            type.CreateTypeInfo();
         }
 
         /// <summary>
@@ -362,6 +368,7 @@ namespace Microsoft.Build.Debugging
             // of debuggable reflection-emit.
             ErrorUtilities.VerifyThrow(s_dynamicModule == null, "Already emitted");
 
+#if FEATURE_DEBUGGER
             // In a later release, this could be changed to use LightweightCodeGen (DynamicMethod instead of AssemblyBuilder); 
             // currently they don't support sequence points, so they can't be debugged in the normal way
             AssemblyBuilder assembly = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("msbuild"), AssemblyBuilderAccess.Run);
@@ -378,8 +385,12 @@ namespace Microsoft.Build.Debugging
 
             // Arbitrary but reasonable name
             string name = Process.GetCurrentProcess().ProcessName;
-
+#if FEATURE_REFLECTION_EMIT_DEBUG_INFO
             s_dynamicModule = assembly.DefineDynamicModule(name, true /* track debug information */);
+#else
+            s_dynamicModule = assembly.DefineDynamicModule(name);
+#endif
+#endif
         }
 
         /// <summary>
@@ -433,6 +444,7 @@ namespace Microsoft.Build.Debugging
             // }
             ILGenerator generator = method.GetILGenerator();
 
+#if FEATURE_DEBUGGER
             ISymbolDocumentWriter source;
             if (!s_sources.TryGetValue(state.Location.File, out source))
             {
@@ -450,6 +462,7 @@ namespace Microsoft.Build.Debugging
             generator.EmitCall(OpCodes.Call, s_islandCallback /* method */, null /* no opt params */);
 
             generator.Emit(OpCodes.Ret); // Return from state
+#endif
 
             return method.Name;
         }
@@ -729,8 +742,8 @@ namespace Microsoft.Build.Debugging
 
                 _workerThread.Join();
 
-                _workToDoEvent.Close();
-                _workDoneEvent.Close();
+                _workToDoEvent.Dispose();
+                _workDoneEvent.Dispose();
             }
 
             /// <summary>
@@ -907,3 +920,4 @@ namespace Microsoft.Build.Debugging
         }
     }
 }
+#endif

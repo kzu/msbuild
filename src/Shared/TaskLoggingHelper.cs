@@ -7,8 +7,10 @@ using System.Globalization;
 using System.IO;
 using System.Resources;
 using System.Text;
+#if FEATURE_APPDOMAIN
 using System.Runtime.Remoting.Lifetime;
 using System.Runtime.Remoting;
+#endif
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -16,7 +18,7 @@ using Microsoft.Build.Shared;
 #if BUILD_ENGINE
 namespace Microsoft.Build.BackEnd
 #else
-namespace Microsoft.Build.Tasks
+namespace Microsoft.Build.Utilities
 #endif
 {
     /// <summary>
@@ -30,7 +32,10 @@ namespace Microsoft.Build.Tasks
 #else
     public
 #endif
- class TaskLoggingHelper : MarshalByRefObject
+ class TaskLoggingHelper
+#if FEATURE_APPDOMAIN
+        : MarshalByRefObject
+#endif
     {
         #region Constructors
 
@@ -61,12 +66,14 @@ namespace Microsoft.Build.Tasks
 
         #region Properties
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// A client sponsor is a class
         /// which will respond to a lease renewal request and will
         /// increase the lease time allowing the object to stay in memory
         /// </summary>
         private ClientSponsor _sponsor;
+#endif
 
         // We have to pass an instance of ITask to BuildEngine, and since we call into the engine from this class we
         // need to store the actual task instance.
@@ -103,7 +110,7 @@ namespace Microsoft.Build.Tasks
                 if (_taskNameUpperCase == null)
                 {
                     // NOTE: use the current thread culture, because this string will be displayed to the user
-                    _taskNameUpperCase = TaskName.ToUpper(CultureInfo.CurrentCulture);
+                    _taskNameUpperCase = TaskName.ToUpper();
                 }
 
                 return _taskNameUpperCase;
@@ -126,7 +133,7 @@ namespace Microsoft.Build.Tasks
             get
             {
                 // If the task instance does not equal null then use its build engine because 
-                // the task instances build engine can be changed for example during tests. This changin of the engine on the same task object is not expected to happen 
+                // the task instances build engine can be changed for example during tests. This changing of the engine on the same task object is not expected to happen
                 // during normal operation.
                 if (_taskInstance != null)
                 {
@@ -1232,7 +1239,7 @@ namespace Microsoft.Build.Tasks
 
             // Command-line tools are generally going to emit their output using the current 
             // codepage, so that it displays correctly in the console window.  
-            using (StreamReader fileStream = new StreamReader(fileName, System.Text.Encoding.Default)) // HIGHCHAR: Use ANSI for logging messages.
+            using (StreamReader fileStream = FileUtilities.OpenRead(fileName, System.Text.Encoding.GetEncoding(0))) // HIGHCHAR: Use ANSI for logging messages.
             {
                 errorsFound = LogMessagesFromStream(fileStream, messageImportance);
             }
@@ -1353,6 +1360,7 @@ namespace Microsoft.Build.Tasks
 
         #endregion
 
+#if FEATURE_APPDOMAIN
         #region AppDomain Code
 
         /// <summary>
@@ -1371,7 +1379,7 @@ namespace Microsoft.Build.Tasks
                 ILease lease = (ILease)base.InitializeLifetimeService();
 
                 // Set how long a lease should be initially. Once a lease expires
-                // the remote object will be disconnected and it will be marked as being availiable 
+                // the remote object will be disconnected and it will be marked as being available
                 // for garbage collection
                 int initialLeaseTime = 1;
 
@@ -1428,7 +1436,7 @@ namespace Microsoft.Build.Tasks
             lock (_locker)
             {
                 // Clear out the sponsor (who is responsible for keeping the TaskLoggingHelper remoting lease alive until the task is done)
-                // this will be null if the engineproxy was never sent across an appdomain boundry.
+                // this will be null if the engineproxy was never sent across an appdomain boundary.
                 if (_sponsor != null)
                 {
                     ILease lease = (ILease)RemotingServices.GetLifetimeService(this);
@@ -1445,5 +1453,6 @@ namespace Microsoft.Build.Tasks
         }
 
         #endregion
+#endif
     }
 }

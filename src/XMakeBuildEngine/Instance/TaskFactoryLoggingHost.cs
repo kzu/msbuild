@@ -11,15 +11,22 @@ using Microsoft.Build.Shared;
 using System.Diagnostics;
 using BaseLoggingContext = Microsoft.Build.BackEnd.Logging.BaseLoggingContext;
 using ElementLocation = Microsoft.Build.Construction.ElementLocation;
+#if FEATURE_APPDOMAIN
 using System.Runtime.Remoting.Lifetime;
 using System.Runtime.Remoting;
+#endif
+using System.Reflection;
 
 namespace Microsoft.Build.BackEnd
 {
     /// <summary>
     /// The host allows task factories access to method to allow them to log message during the construction of the task factories.
     /// </summary>
-    internal class TaskFactoryLoggingHost : MarshalByRefObject, IBuildEngine
+    internal class TaskFactoryLoggingHost :
+#if FEATURE_APPDOMAIN
+        MarshalByRefObject,
+#endif
+        IBuildEngine
     {
         /// <summary>
         /// Location of the task node in the original file
@@ -36,12 +43,14 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private bool _isRunningWithMultipleNodes;
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// A client sponsor is a class
         /// which will respond to a lease renewal request and will
         /// increase the lease time allowing the object to stay in memory
         /// </summary>
         private ClientSponsor _sponsor;
+#endif
 
         /// <summary>
         /// True if the task connected to this proxy is alive
@@ -240,6 +249,7 @@ namespace Microsoft.Build.BackEnd
 
         #endregion
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// InitializeLifetimeService is called when the remote object is activated. 
         /// This method will determine how long the lifetime for the object will be.
@@ -324,6 +334,7 @@ namespace Microsoft.Build.BackEnd
                 _sponsor = null;
             }
         }
+#endif
 
         /// <summary>
         /// Determine if the event is serializable. If we are running with multiple nodes we need to make sure the logging events are serializable. If not
@@ -331,7 +342,7 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         internal bool IsEventSerializable(BuildEventArgs e)
         {
-            if (!e.GetType().IsSerializable)
+            if (!e.GetType().GetTypeInfo().IsSerializable)
             {
                 _loggingContext.LogWarning(new BuildEventFileInfo(string.Empty), null, "ExpectedEventToBeSerializable", e.GetType().Name);
                 return false;

@@ -1,9 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-   <!--
+  <!--
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" Condition="!$(Configuration.EndsWith('MONO'))"/>
   -->
-  <Import Project="..\dir.props"/>
+  <Import Project="..\dir.props" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -17,14 +17,63 @@
   </PropertyGroup>
   <!-- Default configurations to help VS understand the configurations -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DefineConstants>$(DefineConstants);BUILD_ENGINE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DefineConstants>$(DefineConstants);BUILD_ENGINE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug-MONO|AnyCPU'">
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release-MONO|AnyCPU'">
   </PropertyGroup>
+  <!-- This item group is for classes that exist in .NET Framework but not in .NET Core.
+       The code here was generally copied from the .NET Framework reference source and
+       modified to compile for .NET Core -->
+  <ItemGroup Condition="$(TargetFrameworkIdentifier) != '.NETFramework'">
+    <Compile Include="..\Shared\Compat\Base64Encoder.cs">
+      <Link>SharedUtilities\Compat\Base64Encoder.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\BinHexEncoder.cs">
+      <Link>SharedUtilities\Compat\BinHexEncoder.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\SafeHandleZeroOrMinusOneIsInvalid.cs">
+      <Link>SharedUtilities\Compat\SafeHandleZeroOrMinusOneIsInvalid.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\SecureStringHasher.cs">
+      <Link>SharedUtilities\Compat\SecureStringHasher.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\TypeFilter.cs">
+      <Link>SharedUtilities\Compat\TypeFilter.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\TypeExtensions.cs">
+      <Link>SharedUtilities\Compat\TypeExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\ValidateNames.cs">
+      <Link>SharedUtilities\Compat\ValidateNames.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\XmlCharType.cs">
+      <Link>SharedUtilities\Compat\XmlCharType.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\XmlReservedNs.cs">
+      <Link>SharedUtilities\Compat\XmlReservedNs.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\XmlTextEncoder.cs">
+      <Link>SharedUtilities\Compat\XmlTextEncoder.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\XmlTextWriter.cs">
+      <Link>SharedUtilities\Compat\XmlTextWriter.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\Compat\SerializableAttribute.cs">
+      <Link>SharedUtilities\Compat\SerializableAttribute.cs</Link>
+    </Compile>
+  </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Shared\EnvironmentUtilities.cs">
+      <Link>SharedUtilities\EnvironmentUtilities.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\FileUtilities.GetFolderPath.cs" Condition="'$(FeatureSpecialFolders)' != 'true'">
+      <Link>SharedUtilities\FileUtilities.GetFolderPath.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\FxCopExclusions\Microsoft.Build.Shared.Suppressions.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
@@ -72,7 +121,7 @@
     <Compile Include="..\Shared\NodeEngineShutdownReason.cs" />
     <Compile Include="..\Shared\IKeyed.cs" />
     <Compile Include="..\Shared\INodeEndpoint.cs" />
-    <Compile Include="..\Shared\NodeEndpointOutOfProcBase.cs" />
+    <Compile Include="..\Shared\NodeEndpointOutOfProcBase.cs" Condition="$(FeatureAppDomain) == 'true'" />
     <Compile Include="..\Shared\INodePacket.cs" />
     <Compile Include="..\Shared\INodePacketFactory.cs" />
     <Compile Include="..\Shared\INodePacketHandler.cs" />
@@ -95,7 +144,7 @@
     <Compile Include="..\Shared\TaskParameterTypeVerifier.cs" />
     <Compile Include="..\Shared\CommunicationsUtilities.cs" />
     <Compile Include="..\Shared\InterningBinaryReader.cs" />
-    <Compile Include="..\Shared\TaskEngineAssemblyResolver.cs">
+    <Compile Include="..\Shared\TaskEngineAssemblyResolver.cs" Condition="$(FeatureAppDomain) == 'true'">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
     <Compile Include="..\Shared\ReuseableStringBuilder.cs" />
@@ -155,6 +204,7 @@
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
     <Compile Include="Definition\ProjectCollectionChangedEventArgs.cs" />
+    <Compile Include="Definition\ToolsetLocalReader.cs" />
     <Compile Include="Evaluation\ItemsAndMetadataPair.cs" />
     <Compile Include="Evaluation\MetadataReference.cs" />
     <Compile Include="Evaluation\ProjectChangedEventArgs.cs" />
@@ -162,9 +212,9 @@
     <Compile Include="Construction\Solution\SolutionProjectGenerator.cs" />
     <Compile Include="Evaluation\IToolsetProvider.cs" />
     <Compile Include="BackEnd\Components\Caching\ResultsCacheResponse.cs" />
-    <Compile Include="BackEnd\Components\Communications\NodeEndpointOutOfProc.cs" />
+    <Compile Include="BackEnd\Components\Communications\NodeEndpointOutOfProc.cs" Condition="$(FeatureAppDomain) == 'true'" />
     <Compile Include="BackEnd\Components\Communications\NodeManager.cs" />
-    <Compile Include="BackEnd\Components\Communications\TaskHostNodeManager.cs" />
+    <Compile Include="BackEnd\Components\Communications\TaskHostNodeManager.cs" Condition="$(FeatureAppDomain) == 'true'" />
     <Compile Include="BackEnd\Components\Communications\LogMessagePacket.cs" />
     <Compile Include="BackEnd\Components\Communications\NodeFailedToLaunchException.cs" />
     <Compile Include="BackEnd\Components\BuildRequestEngine\BuildRequestConfigurationResponse.cs" />
@@ -177,9 +227,9 @@
     <Compile Include="BackEnd\Components\Caching\IPropertyCache.cs" />
     <Compile Include="BackEnd\Components\Caching\IResultsCache.cs" />
     <Compile Include="BackEnd\Components\Communications\NodePacketTranslatorExtensions.cs" />
-    <Compile Include="BackEnd\Components\Communications\NodeProviderOutOfProc.cs" />
-    <Compile Include="BackEnd\Components\Communications\NodeProviderOutOfProcBase.cs" />
-    <Compile Include="BackEnd\Components\Communications\NodeProviderOutOfProcTaskHost.cs" />
+    <Compile Include="BackEnd\Components\Communications\NodeProviderOutOfProc.cs" Condition="$(FeatureAppDomain) == 'true'" />
+    <Compile Include="BackEnd\Components\Communications\NodeProviderOutOfProcBase.cs" Condition="$(FeatureAppDomain) == 'true'" />
+    <Compile Include="BackEnd\Components\Communications\NodeProviderOutOfProcTaskHost.cs" Condition="$(FeatureAppDomain) == 'true'" />
     <Compile Include="BackEnd\Components\RequestBuilder\BatchingEngine.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
@@ -191,7 +241,7 @@
     <Compile Include="BackEnd\Components\RequestBuilder\TargetSpecification.cs" />
     <Compile Include="BackEnd\Node\InProcNode.cs" />
     <Compile Include="BackEnd\Node\NodeConfiguration.cs" />
-    <Compile Include="BackEnd\Node\OutOfProcNode.cs" />
+    <Compile Include="BackEnd\Node\OutOfProcNode.cs" Condition="$(FeatureAppDomain) == 'true'" />
     <Compile Include="BackEnd\Node\NativeMethods.cs" />
     <Compile Include="BackEnd\Shared\BuildAbortedException.cs" />
     <Compile Include="BackEnd\Components\RequestBuilder\IRequestBuilder.cs" />
@@ -312,8 +362,8 @@
     <Compile Include="Definition\ResolvedImport.cs" />
     <Compile Include="Definition\SubToolset.cs" />
     <Compile Include="Definition\Toolset.cs" />
-    <Compile Include="Definition\ToolsetConfigurationReader.cs" />
-    <Compile Include="..\Shared\ToolsetElement.cs">
+    <Compile Include="Definition\ToolsetConfigurationReader.cs" Condition="$(FeatureSystemConfiguration) == 'true'" />
+    <Compile Include="..\Shared\ToolsetElement.cs" Condition="$(FeatureSystemConfiguration) == 'true'">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
     <Compile Include="Definition\ToolsetPropertyDefinition.cs" />
@@ -638,6 +688,8 @@
       <SubType>Designer</SubType>
       <LogicalName>$(AssemblyName).Resources.Strings.shared.resources</LogicalName>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup Condition="'$(NetCoreBuild)' != 'true'">
     <!-- Assemblies Files we depend on -->
     <!-- Be conservative when adding references... adding System.Xml.Linq can add .47 sec cold start time to our launch time, or 80 ms to warm start time -->
     <Reference Include="System" />
@@ -650,23 +702,18 @@
     <Reference Include="System.Threading.Tasks">
       <HintPath>$(MSBuildProgramFiles32)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.1\Facades\System.Threading.Tasks.dll</HintPath>
     </Reference>
-    <Reference Include="System.Threading.Tasks.Dataflow, Version=4.5.24.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(PackagesDir)Microsoft.Tpl.Dataflow.4.5.24\lib\portable-net45+win8+wpa81\System.Threading.Tasks.Dataflow.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <!-- If TargetRetailBuildFramework is set to true, reference the public key version. Otherwise reference the project. -->
-    <Reference Condition=" '$(TargetRetailBuildFramework)' == 'true' " Include="Microsoft.Build.Framework, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
-    <ProjectReference Condition=" '$(TargetRetailBuildFramework)' != 'true' " Include="..\Framework\Microsoft.Build.Framework.csproj">
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Framework\Microsoft.Build.Framework.csproj">
       <Project>{571F09DB-A81A-4444-945C-6F7B530054CD}</Project>
       <Name>Microsoft.Build.Framework</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <None Include="project.json" />
   </ItemGroup>
-   <!--
+  <!--
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" Condition="!$(Configuration.EndsWith('MONO'))"/>
   -->
-  <Import Project="..\dir.targets"/>
+  <Import Project="..\dir.targets" />
 </Project>

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
-using Microsoft.Build.Tasks;
+#if FEATURE_FILE_TRACKER
 
 namespace Microsoft.Build.Utilities
 {
@@ -57,7 +57,7 @@ namespace Microsoft.Build.Utilities
 
         #region Properties
 
-        // This is provided to faciltate unit testing
+        // This is provided to facilitate unit testing
         internal ITaskItem[] SourcesNeedingCompilation
         {
             get { return _sourcesNeedingCompilation; }
@@ -945,7 +945,7 @@ namespace Microsoft.Build.Utilities
                 }
 
                 // Write out the remaining dependency information as a new tlog
-                using (StreamWriter inputs = new StreamWriter(firstTlog, false, System.Text.Encoding.Unicode))
+                using (StreamWriter inputs = FileUtilities.OpenWrite(firstTlog, false, System.Text.Encoding.Unicode))
                 {
                     if (!_maintainCompositeRootingMarkers)
                     {
@@ -1167,3 +1167,5 @@ namespace Microsoft.Build.Utilities
         #endregion
     }
 }
+
+#endif

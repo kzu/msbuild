@@ -17,6 +17,7 @@ using System.Security.Principal;
 using System.Threading;
 
 using Microsoft.Build.Shared;
+using System.Reflection;
 
 namespace Microsoft.Build.Internal
 {
@@ -309,6 +310,7 @@ namespace Microsoft.Build.Internal
         /// </summary>
         internal static long GenerateHostHandshakeFromBase(long baseHandshake, long clientHandshake)
         {
+#if FEATURE_SECURITY_PRINCIPAL_WINDOWS
             // If we are running in elevated privs, we will only accept a handshake from an elevated process as well.
             WindowsPrincipal principal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
 
@@ -327,6 +329,7 @@ namespace Microsoft.Build.Internal
                     baseHandshake = ~baseHandshake;
                 }
             }
+#endif
 
             // Mask out the first byte. That's because old
             // builds used a single, non zero initial byte,
@@ -515,7 +518,7 @@ namespace Microsoft.Build.Internal
             // We know that whichever assembly is executing this code -- whether it's MSBuildTaskHost.exe or 
             // Microsoft.Build.dll -- is of the version of the CLR that this process is running.  So grab
             // the version of mscorlib currently in use and call that good enough.  
-            Version mscorlibVersion = typeof(bool).Assembly.GetName().Version;
+            Version mscorlibVersion = typeof(bool).GetTypeInfo().Assembly.GetName().Version;
 
             string currentMSBuildArchitecture = XMakeAttributes.GetCurrentMSBuildArchitecture();
             TaskHostContext hostContext = GetTaskHostContext(currentMSBuildArchitecture.Equals(XMakeAttributes.MSBuildArchitectureValues.x64), mscorlibVersion.Major);
@@ -582,7 +585,7 @@ namespace Microsoft.Build.Internal
 
                     fileName += ".txt";
 
-                    using (StreamWriter file = new StreamWriter(String.Format(CultureInfo.CurrentCulture, Path.Combine(s_debugDumpPath, fileName), Process.GetCurrentProcess().Id, nodeId), true))
+                    using (StreamWriter file = FileUtilities.OpenWrite(String.Format(CultureInfo.CurrentCulture, Path.Combine(s_debugDumpPath, fileName), Process.GetCurrentProcess().Id, nodeId), append: true))
                     {
                         string message = String.Format(CultureInfo.CurrentCulture, format, args);
                         long now = DateTime.UtcNow.Ticks;
