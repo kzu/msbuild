@@ -9,6 +9,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Xml;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.BackEnd.Logging;
@@ -18,17 +19,13 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Tasks;
-
 using Microsoft.Build.Utilities;
 
-
-
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
-using Microsoft.Build.UnitTests;
 using Microsoft.CodeAnalysis.BuildTasks;
 using Xunit;
 
+#if FEATURE_COMPILE_IN_TESTS
 namespace Microsoft.Build.UnitTests.BackEnd
 {
     public class TaskAssemblyFixture : IDisposable
@@ -1526,7 +1523,7 @@ namespace TestTask
 #if FEATURE_ASSEMBLY_LOCATION
                 string type = type = typeof(DerivedFromITaskItem).FullName + "," + typeof(DerivedFromITaskItem).Assembly.FullName;
 #else
-            string type = type = typeof(DerivedFromITaskItem).FullName + "," + typeof(DerivedFromITaskItem).GetTypeInfo().Assembly.FullName;
+                string type = type = typeof(DerivedFromITaskItem).FullName + "," + typeof(DerivedFromITaskItem).GetTypeInfo().Assembly.FullName;
 #endif
 
                 List<ProjectUsingTaskElement> elementList = CreateParameterElementWithAttributes(output, required, type);
@@ -2297,3 +2294,4 @@ namespace TestTask
         #endregion
     }
 }
+#endif

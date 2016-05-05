@@ -99,6 +99,8 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyFullPath()
         {
             FindUnderPath t = new FindUnderPath();
@@ -119,6 +121,8 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyFullPathNegative()
         {
             FindUnderPath t = new FindUnderPath();

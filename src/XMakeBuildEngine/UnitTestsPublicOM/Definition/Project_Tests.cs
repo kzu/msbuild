@@ -256,6 +256,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
             }
            );
         }
+
         /// <summary>
         /// Reading from an XMLReader that was closed should throw the correct
         /// exception
@@ -266,11 +267,12 @@ namespace Microsoft.Build.UnitTests.OM.Definition
             Assert.Throws<InvalidProjectFileException>(() =>
             {
                 XmlReader reader = XmlReader.Create(new StringReader(String.Empty));
-                reader.Close();
+                reader.Dispose();
                 Project project = new Project(reader);
             }
            );
         }
+
         /// <summary>
         /// Reading from an XMLReader that has TWO valid root elements should work
         /// if it's already read past the first one.
@@ -661,19 +663,19 @@ namespace Microsoft.Build.UnitTests.OM.Definition
             if (NativeMethodsShared.IsWindows)
             {
                 Assert.Equal(
-                    Path.Combine(Environment.CurrentDirectory, @"obj\i386\foo.dll"),
+                    Path.Combine(Directory.GetCurrentDirectory(), @"obj\i386\foo.dll"),
                     project.GetItems("BuiltProjectOutputGroupKeyOutput").First().EvaluatedInclude);
                 Assert.Equal(
-                    Path.Combine(Environment.CurrentDirectory, @"obj\i386\foo.dll"),
+                    Path.Combine(Directory.GetCurrentDirectory(), @"obj\i386\foo.dll"),
                     projectInstance.GetItems("BuiltProjectOutputGroupKeyOutput").First().EvaluatedInclude);
             }
             else
             {
                 Assert.Equal(
-                    Path.Combine(Environment.CurrentDirectory, @"obj/i386/foo.dll"),
+                    Path.Combine(Directory.GetCurrentDirectory(), @"obj/i386/foo.dll"),
                     project.GetItems("BuiltProjectOutputGroupKeyOutput").First().EvaluatedInclude);
                 Assert.Equal(
-                   Path.Combine(Environment.CurrentDirectory, @"obj/i386/foo.dll"),
+                   Path.Combine(Directory.GetCurrentDirectory(), @"obj/i386/foo.dll"),
                     projectInstance.GetItems("BuiltProjectOutputGroupKeyOutput").First().EvaluatedInclude);
             }
         }
@@ -999,7 +1001,12 @@ namespace Microsoft.Build.UnitTests.OM.Definition
         /// Changing global properties with some preexisting from the project collection.
         /// Should not modify those on the project collection.
         /// </summary>
+#if FEATURE_INSTALLED_MSBUILD
         [Fact]
+#else
+        [Fact(Skip = "https://github.com/Microsoft/msbuild/issues/276")]
+#endif
+        [Trait("Category", "mono-osx-failing")]
         public void ChangeGlobalPropertiesInitiallyFromProjectCollection()
         {
             Dictionary<string, string> initial = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -1267,6 +1274,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
         /// environment 
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void GetSubToolsetVersion_FromEnvironment()
         {
             string originalVisualStudioVersion = Environment.GetEnvironmentVariable("VisualStudioVersion");
@@ -1586,7 +1594,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
                     File.Delete(filePathToRemove);
                 }
 
-                Directory.Delete(testFileRoot);
+                FileUtilities.DeleteWithoutTrailingBackslash(testFileRoot);
             }
         }
 
@@ -2317,7 +2325,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
             }
             finally
             {
-                Directory.Delete(directory, true);
+                FileUtilities.DeleteWithoutTrailingBackslash(directory, true);
             }
         }
 
@@ -2439,7 +2447,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
                 // Delete the temp directory that was created above.
                 if (Directory.Exists(myTempDir))
                 {
-                    Directory.Delete(myTempDir, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(myTempDir, true);
                 }
             }
         }

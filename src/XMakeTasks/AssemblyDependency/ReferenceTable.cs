@@ -87,8 +87,10 @@ namespace Microsoft.Build.Tasks
         private GetAssemblyMetadata _getAssemblyMetadata;
         /// <summary>Delegate used to get the image runtime version of a file</summary>
         private GetAssemblyRuntimeVersion _getRuntimeVersion;
+#if FEATURE_WIN32_REGISTRY
         /// <summary> Delegate to get the base registry key for AssemblyFoldersEx</summary>
         private OpenBaseKey _openBaseKey;
+#endif
         /// <summary>Version of the runtime we are targeting</summary>
         private Version _targetedRuntimeVersion = null;
 
@@ -193,7 +195,7 @@ namespace Microsoft.Build.Tasks
         /// <param name="getRegistrySubKeyDefaultValue">Used to get registry default values.</param>
         internal ReferenceTable
         (
-                      IBuildEngine buildEngine,
+            IBuildEngine buildEngine,
             bool findDependencies,
             bool findSatellites,
             bool findSerializationAssemblies,
@@ -211,9 +213,11 @@ namespace Microsoft.Build.Tasks
             GetDirectories getDirectories,
             GetAssemblyName getAssemblyName,
             GetAssemblyMetadata getAssemblyMetadata,
+#if FEATURE_WIN32_REGISTRY
             GetRegistrySubKeyNames getRegistrySubKeyNames,
             GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue,
             OpenBaseKey openBaseKey,
+#endif
             GetAssemblyRuntimeVersion getRuntimeVersion,
             Version targetedRuntimeVersion,
             Version projectTargetFramework,
@@ -250,7 +254,9 @@ namespace Microsoft.Build.Tasks
             _getRuntimeVersion = getRuntimeVersion;
             _projectTargetFramework = projectTargetFramework;
             _targetedRuntimeVersion = targetedRuntimeVersion;
+#if FEATURE_WIN32_REGISTRY
             _openBaseKey = openBaseKey;
+#endif
             _targetFrameworkMoniker = targetFrameworkMoniker;
             _latestTargetFrameworkDirectories = latestTargetFrameworkDirectories;
             _copyLocalDependenciesWhenParentReferenceInGac = copyLocalDependenciesWhenParentReferenceInGac;
@@ -299,9 +305,11 @@ namespace Microsoft.Build.Tasks
                     frameworkPaths,
                     fileExists,
                     getAssemblyName,
+#if FEATURE_WIN32_REGISTRY
                     getRegistrySubKeyNames,
                     getRegistrySubKeyDefaultValue,
                     openBaseKey,
+#endif
                     installedAssemblies,
                     getRuntimeVersion,
                     targetedRuntimeVersion,
@@ -1075,7 +1083,11 @@ namespace Microsoft.Build.Tasks
                 string name = preUnificationAssemblyName.Name;
                 // First, unify the assembly name so that we're dealing with the right version.
                 // Not AssemblyNameExtension because we're going to write to it.
+#if FEATURE_ASSEMBLYNAME_CLONE
                 AssemblyNameExtension dependentAssembly = new AssemblyNameExtension((AssemblyName)preUnificationAssemblyName.AssemblyName.Clone());
+#else
+                AssemblyNameExtension dependentAssembly = new AssemblyNameExtension(new AssemblyName(preUnificationAssemblyName.AssemblyName.FullName));
+#endif
 
                 Version unifiedVersion;
                 bool isPrerequisite;
@@ -1884,7 +1896,11 @@ namespace Microsoft.Build.Tasks
                 byte[] pkt = assemblyName.GetPublicKeyToken();
                 if (pkt != null && pkt.Length > 0)
                 {
+#if FEATURE_ASSEMBLYNAME_CLONE
                     AssemblyName baseKey = (AssemblyName)assemblyName.AssemblyName.Clone();
+#else
+                    AssemblyName baseKey = new AssemblyName(assemblyName.AssemblyName.FullName);
+#endif
                     Version version = baseKey.Version;
                     baseKey.Version = null;
                     string key = baseKey.ToString();
@@ -2374,7 +2390,11 @@ namespace Microsoft.Build.Tasks
                 foreach (DependentAssembly remappedAssembly in _remappedAssemblies)
                 {
                     // First, exclude anything without the simple name match
+#if FEATURE_ASSEMBLYNAME_CLONE
                     AssemblyNameExtension comparisonAssembly = new AssemblyNameExtension((AssemblyName)remappedAssembly.PartialAssemblyName.Clone());
+#else
+                    AssemblyNameExtension comparisonAssembly = new AssemblyNameExtension(new AssemblyName(remappedAssembly.PartialAssemblyName.FullName));
+#endif
                     if (assemblyName.CompareBaseNameTo(comparisonAssembly) == 0)
                     {
                         // Comparison assembly is a partial name. Give it our version.
@@ -2827,7 +2847,7 @@ namespace Microsoft.Build.Tasks
             {
                 if (ExceptionHandling.IsCriticalException(e))
                 {
-                    throw e;
+                    throw;
                 }
 
                 _log.LogErrorWithCodeFromResources("ResolveAssemblyReference.ProblemReadingImplementationDll", dllPath, e.Message);

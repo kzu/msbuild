@@ -396,6 +396,7 @@ namespace Microsoft.Build.Shared
                     {
                         s_fallbackDotNetFrameworkSdkInstallPath = NativeMethodsShared.FrameworkCurrentPath;
                     }
+#if FEATURE_WIN32_REGISTRY
                     else
                     {
                         s_fallbackDotNetFrameworkSdkInstallPath =
@@ -414,6 +415,7 @@ namespace Microsoft.Build.Shared
                                     RegistryView.Registry32);
                         }
                     }
+#endif
                 }
 
                 return s_fallbackDotNetFrameworkSdkInstallPath;
@@ -612,6 +614,7 @@ namespace Microsoft.Build.Shared
             return GetDotNetFrameworkSpec(version).GetPathToDotNetFramework(architecture);
         }
 
+#if FEATURE_INSTALLED_MSBUILD
         /// <summary>
         /// Check the registry key and value to see if the .net Framework is installed on the machine.
         /// </summary>
@@ -642,6 +645,7 @@ namespace Microsoft.Build.Shared
 
             return true;
         }
+#endif
 
         /// <summary>
         /// Heuristic that first considers the current runtime path and then searches the base of that path for the given
@@ -670,7 +674,8 @@ namespace Microsoft.Build.Shared
                     prefix = prefix.Substring(1);
                 }
 
-                return Path.Combine(NativeMethodsShared.FrameworkBasePath, prefix ?? string.Empty);
+                var frameworkPath = Path.Combine(NativeMethodsShared.FrameworkBasePath, prefix ?? string.Empty);
+                return directoryExists(frameworkPath) ? frameworkPath : null;
             }
 
             // If the COMPLUS variables are set, they override everything -- that's the directory we want.  
@@ -849,11 +854,13 @@ namespace Microsoft.Build.Shared
             // Much like when reading toolsets, first check the .exe.config
             string toolsPath = GetPathToBuildToolsFromConfig(toolsVersion);
 
+#if FEATURE_WIN32_REGISTRY
             if (String.IsNullOrEmpty(toolsPath) && NativeMethodsShared.IsWindows)
             {
                 // Or if it's not defined there, look it up in the registry
                 toolsPath = GetPathToBuildToolsFromRegistry(toolsVersion, architecture);
             }
+#endif
 #if !FEATURE_SYSTEM_CONFIGURATION && !FEATURE_REGISTRY_TOOLSETS
             if (string.IsNullOrEmpty(toolsPath))
             {
@@ -960,57 +967,121 @@ namespace Microsoft.Build.Shared
             string toolPath = null;
 
 #if FEATURE_SYSTEM_CONFIGURATION
-            if (ToolsetConfigurationReaderHelpers.ConfigurationFileMayHaveToolsets())
+            try
             {
-                try
+                ToolsetElement toolset = GetToolsetElementFromConfigFor(toolsVersion);
+                PropertyElement toolsPathFromConfiguration = toolset?.PropertyElements.GetElement(MSBuildConstants.ToolsPath);
+                toolPath = toolsPathFromConfiguration?.Value;
+
+                if (toolPath != null)
                 {
-                    Configuration configuration = FileUtilities.RunningTests
-                                                      ? ConfigurationManager.OpenExeConfiguration(
-                                                          FileUtilities.CurrentExecutablePath)
-                                                      : ConfigurationManager.OpenExeConfiguration(
-                                                          ConfigurationUserLevel.None);
-
-                    ToolsetConfigurationSection configurationSection = ToolsetConfigurationReaderHelpers.ReadToolsetConfigurationSection(configuration);
-
-                    if (configurationSection != null)
+                    if (!FileUtilities.IsRootedNoThrow(toolPath))
                     {
-                        ToolsetElement toolset = configurationSection.Toolsets.GetElement(toolsVersion);
-
-                        if (toolset != null)
-                        {
-                            PropertyElement toolsPathFromConfiguration = toolset.PropertyElements.GetElement(MSBuildConstants.ToolsPath);
-
-                            if (toolsPathFromConfiguration != null)
-                            {
-                                toolPath = toolsPathFromConfiguration.Value;
-
-                                if (toolPath != null)
-                                {
-                                    if (!FileUtilities.IsRootedNoThrow(toolPath))
-                                    {
-                                        toolPath = FileUtilities.NormalizePath(Path.Combine(FileUtilities.CurrentExecutableDirectory, toolPath));
-                                    }
-
-                                    toolPath = FileUtilities.EnsureTrailingSlash(toolPath);
-                                }
-                            }
-                        }
+                        toolPath = FileUtilities.NormalizePath(Path.Combine(FileUtilities.CurrentExecutableDirectory, toolPath));
                     }
+
+                    toolPath = FileUtilities.EnsureTrailingSlash(toolPath);
                 }
-                catch (ConfigurationException)
-                {
-                    // may happen if the .exe.config contains bad data.  Shouldn't ever happen in 
-                    // practice since we'll long since have loaded all toolsets in the toolset loading 
-                    // code and thrown errors to the user at that point if anything was invalid, but just 
-                    // in case, just eat the exception here, so that we can go on to look in the registry
-                    // to see if there is any valid data there.  
-                }
+            }
+            catch (ConfigurationException)
+            {
+                // may happen if the .exe.config contains bad data.  Shouldn't ever happen in 
+                // practice since we'll long since have loaded all toolsets in the toolset loading 
+                // code and thrown errors to the user at that point if anything was invalid, but just 
+                // in case, just eat the exception here, so that we can go on to look in the registry
+                // to see if there is any valid data there.  
             }
 #endif
 
             return toolPath;
         }
 
+        internal static IList<string> GetTargetFrameworkRootFallbackPaths(string toolsVersion)
+        {
+#if FEATURE_SYSTEM_CONFIGURATION
+            return GetTargetFrameworkRootFallbackPathsFromConfigFor(toolsVersion);
+#else
+            return new List<string>();
+#endif
+        }
+
+#if FEATURE_SYSTEM_CONFIGURATION
+        /// <summary>
+        /// Returns the list of fallback search paths for looking up Target frameworks for the current OS,
+        /// specified in app.config like:
+        ///
+        ///     <msbuildToolsets default="14.1">
+        ///         <toolset toolsVersion="14.1">
+        ///         <property name="TargetFrameworkRootPathSearchPathsOSX" value="/tmp/foo;/tmp/bar" />
+        ///
+        /// </summary>
+        internal static IList<string> GetTargetFrameworkRootFallbackPathsFromConfigFor(string toolsVersion)
+        {
+            try
+            {
+                ToolsetElement toolset = GetToolsetElementFromConfigFor(toolsVersion);
+                PropertyElement searchPathsfromConfiguration = toolset?.PropertyElements.GetElement("TargetFrameworkRootPathSearchPaths" + GetOSNameForTargetFrameworkRoot());
+                var searchPaths = searchPathsfromConfiguration?.Value;
+
+                if (searchPaths != null)
+                {
+                    //FIXME: Split on unix
+                    var pathsList = searchPaths.Split(new char[] {';'}, StringSplitOptions.RemoveEmptyEntries);
+                    return pathsList;
+                }
+            }
+            catch (ConfigurationException)
+            {
+                // may happen if the .exe.config contains bad data.  Shouldn't ever happen in 
+                // practice since we'll long since have loaded all toolsets in the toolset loading 
+                // code and thrown errors to the user at that point if anything was invalid, but just 
+                // in case, just eat the exception here, so that we can go on to look in the registry
+                // to see if there is any valid data there.  
+            }
+            return new List<string>();
+        }
+#endif
+
+#if FEATURE_SYSTEM_CONFIGURATION
+        private static ToolsetElement GetToolsetElementFromConfigFor(string toolsVersion)
+        {
+            ToolsetConfigurationSection configurationSection = null;
+
+            if (ToolsetConfigurationReaderHelpers.ConfigurationFileMayHaveToolsets())
+            {
+                Configuration configuration = FileUtilities.RunningTests
+                                                  ? ConfigurationManager.OpenExeConfiguration(
+                                                      FileUtilities.CurrentExecutablePath)
+                                                  : ConfigurationManager.OpenExeConfiguration(
+                                                      ConfigurationUserLevel.None);
+
+                configurationSection = ToolsetConfigurationReaderHelpers.ReadToolsetConfigurationSection(configuration);
+            }
+
+            return configurationSection?.Toolsets.GetElement(toolsVersion);
+        }
+#endif
+
+        /// <summary>
+        /// OS name that can be used as the suffix for `TargetFrameworkRootPathSearchPaths` property name
+        /// in app.config
+        /// </summary>
+        private static string GetOSNameForTargetFrameworkRoot()
+        {
+            if (NativeMethodsShared.IsWindows)
+            {
+                return "Windows";
+            }
+
+            if (NativeMethodsShared.IsOSX)
+            {
+                return "OSX";
+            }
+
+            return "Unix";
+        }
+
+#if FEATURE_WIN32_REGISTRY
         /// <summary>
         /// Look up the path to the build tools directory in the registry for the requested ToolsVersion and requested architecture  
         /// </summary>
@@ -1036,6 +1107,7 @@ namespace Microsoft.Build.Shared
             string toolsPath = FindRegistryValueUnderKey(toolsVersionSpecificKey, MSBuildConstants.ToolsPath, view);
             return toolsPath;
         }
+#endif
 
         #endregion // Internal methods
 
@@ -1058,6 +1130,7 @@ namespace Microsoft.Build.Shared
             return referenceAssemblyDirectory;
         }
 
+#if FEATURE_WIN32_REGISTRY
         /// <summary>
         /// Look for the given registry value under the given key.
         /// </summary>
@@ -1108,6 +1181,7 @@ namespace Microsoft.Build.Shared
 
             return keyValueAsString;
         }
+#endif
 
         private static VisualStudioSpec GetVisualStudioSpec(Version version)
         {
@@ -1311,10 +1385,12 @@ namespace Microsoft.Build.Shared
             /// </summary>
             protected readonly ConcurrentDictionary<Version, string> pathsToDotNetFrameworkSdkTools;
 
+#if FEATURE_WIN32_REGISTRY
             /// <summary>
             /// Cached path of the corresponding windows sdk.
             /// </summary>
             protected string pathToWindowsSdk;
+#endif
 
             /// <summary>
             /// Cached path of .net framework reference assemblies.
@@ -1386,6 +1462,9 @@ namespace Microsoft.Build.Shared
             /// </summary>
             public virtual string GetPathToDotNetFramework(DotNetFrameworkArchitecture architecture)
             {
+#if !FEATURE_INSTALLED_MSBUILD
+                return null;
+#else
                 string cachedPath;
                 if (this.pathsToDotNetFramework.TryGetValue(architecture, out cachedPath))
                 {
@@ -1428,6 +1507,7 @@ namespace Microsoft.Build.Shared
                 }
 
                 return generatedPathToDotNetFramework;
+#endif
             }
 
             /// <summary>
@@ -1457,6 +1537,7 @@ namespace Microsoft.Build.Shared
                         generatedPathToDotNetFrameworkSdkTools = frameworkPath;
                     }
                 }
+#if FEATURE_WIN32_REGISTRY
                 else
                 {
                     string registryPath = string.Join(
@@ -1512,7 +1593,7 @@ namespace Microsoft.Build.Shared
                         }
                     }
                 }
-
+#endif
                 if (string.IsNullOrEmpty(generatedPathToDotNetFrameworkSdkTools))
                 {
                     // Fallback to "default" ultimately.
@@ -1568,6 +1649,7 @@ namespace Microsoft.Build.Shared
             /// </summary>
             public virtual string GetPathToWindowsSdk()
             {
+#if FEATURE_WIN32_REGISTRY
                 if (this.pathToWindowsSdk == null)
                 {
                     ErrorUtilities.VerifyThrowArgument(this.visualStudioVersion != null, "FrameworkLocationHelper.UnsupportedFrameworkVersionForWindowsSdk", this.version);
@@ -1587,8 +1669,10 @@ namespace Microsoft.Build.Shared
                         visualStudioSpec.WindowsSdkRegistryInstallationFolderName,
                         RegistryView.Registry32);
                 }
-
                 return this.pathToWindowsSdk;
+#else
+                return null;
+#endif
             }
 
             protected static string FallbackToPathToDotNetFrameworkSdkToolsInPreviousVersion(Version dotNetFrameworkVersion, Version visualStudioVersion)
@@ -1626,7 +1710,9 @@ namespace Microsoft.Build.Shared
         /// </summary>
         private class DotNetFrameworkSpecLegacy : DotNetFrameworkSpec
         {
+#if FEATURE_WIN32_REGISTRY
             private string _pathToDotNetFrameworkSdkTools;
+#endif
 
             public DotNetFrameworkSpecLegacy(
                 Version version,
@@ -1659,6 +1745,7 @@ namespace Microsoft.Build.Shared
             /// </summary>
             public override string GetPathToDotNetFrameworkSdkTools(VisualStudioSpec visualStudioSpec)
             {
+#if FEATURE_WIN32_REGISTRY
                 if (_pathToDotNetFrameworkSdkTools == null)
                 {
                     _pathToDotNetFrameworkSdkTools = FindRegistryValueUnderKey(
@@ -1667,6 +1754,9 @@ namespace Microsoft.Build.Shared
                 }
 
                 return _pathToDotNetFrameworkSdkTools;
+#else
+                return null;
+#endif
             }
 
             /// <summary>
@@ -1728,9 +1818,11 @@ namespace Microsoft.Build.Shared
             {
                 if (this.pathToDotNetFrameworkReferenceAssemblies == null)
                 {
+#if FEATURE_WIN32_REGISTRY
                     this.pathToDotNetFrameworkReferenceAssemblies = FindRegistryValueUnderKey(
                         dotNetFrameworkAssemblyFoldersRegistryPath + "\\" + this.dotNetFrameworkFolderPrefix,
                         referenceAssembliesRegistryValueName);
+#endif
 
                     if (this.pathToDotNetFrameworkReferenceAssemblies == null)
                     {

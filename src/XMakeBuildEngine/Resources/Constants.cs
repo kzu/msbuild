@@ -37,12 +37,14 @@ namespace Microsoft.Build.Internal
         internal const string userExtensionsPath = "MSBuildUserExtensionsPath";
         internal const string toolsPath = MSBuildConstants.ToolsPath;
         internal const string toolsVersion = "MSBuildToolsVersion";
+        internal const string msbuildRuntimeType = "MSBuildRuntimeType";
         internal const string overrideTasksPath = "MSBuildOverrideTasksPath";
         internal const string defaultOverrideToolsVersion = "DefaultOverrideToolsVersion";
         internal const string startupDirectory = "MSBuildStartupDirectory";
         internal const string buildNodeCount = "MSBuildNodeCount";
         internal const string lastTaskResult = "MSBuildLastTaskResult";
         internal const string extensionsPathSuffix = "MSBuild";
+        internal const string appLocalExtensionsPathSuffix = "Extensions";
         internal const string userExtensionsPathSuffix = "Microsoft\\MSBuild";
         internal const string programFiles32 = "MSBuildProgramFiles32";
         internal const string localAppData = "LocalAppData";
@@ -91,6 +93,7 @@ namespace Microsoft.Build.Internal
                         s_reservedProperties.Add(projectDefaultTargets);
                         s_reservedProperties.Add(toolsPath);
                         s_reservedProperties.Add(toolsVersion);
+                        s_reservedProperties.Add(msbuildRuntimeType);
                         s_reservedProperties.Add(startupDirectory);
                         s_reservedProperties.Add(buildNodeCount);
                         s_reservedProperties.Add(lastTaskResult);
@@ -308,6 +311,7 @@ namespace Microsoft.Build.Internal
                     s_availableStaticMethods.TryAdd("System.IO.File::ReadAllText", fileType);
 
                     s_availableStaticMethods.TryAdd("System.Globalization.CultureInfo::GetCultureInfo", new Tuple<string, Type>(null, typeof(System.Globalization.CultureInfo))); // user request
+                    s_availableStaticMethods.TryAdd("System.Globalization.CultureInfo::new", new Tuple<string, Type>(null, typeof(System.Globalization.CultureInfo))); // user request
                     s_availableStaticMethods.TryAdd("System.Globalization.CultureInfo::CurrentUICulture", new Tuple<string, Type>(null, typeof(System.Globalization.CultureInfo))); // user request
 
                     // All static methods of the following are available (Assembly qualified type names are supported):

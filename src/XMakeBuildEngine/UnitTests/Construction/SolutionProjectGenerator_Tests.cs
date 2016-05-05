@@ -112,6 +112,8 @@ namespace Microsoft.Build.UnitTests.Construction
         /// on the Solution File Format Version.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void EmitToolsVersionAttributeToInMemoryProject9()
         {
             if (FrameworkLocationHelper.PathToDotNetFrameworkV35 == null)
@@ -145,6 +147,8 @@ namespace Microsoft.Build.UnitTests.Construction
         /// on the Solution File Format Version.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void EmitToolsVersionAttributeToInMemoryProject10()
         {
             if (FrameworkLocationHelper.PathToDotNetFrameworkV35 == null)
@@ -256,6 +260,7 @@ namespace Microsoft.Build.UnitTests.Construction
         /// Test to make sure that even if the solution version corresponds to an existing sub-toolset version, 
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void SolutionBasedSubToolsetVersionOverriddenByEnvironment()
         {
             Environment.SetEnvironmentVariable("VisualStudioVersion", "ABC");
@@ -908,6 +913,8 @@ EndGlobal
         /// The repro below has one of each case. WebProjects can't build so they are set as SkipNonexistentProjects='Build'
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void Regress751742_SkipNonexistentProjects()
         {
             if (FrameworkLocationHelper.PathToDotNetFrameworkV20 == null)
@@ -1045,6 +1052,7 @@ EndGlobal
             }
         }
 
+#if FEATURE_MULTIPLE_TOOLSETS
         /// <summary>
         /// Make sure that whatever the solution ToolsVersion is, it gets mapped to all its metaprojs, too. 
         /// </summary>
@@ -1054,7 +1062,6 @@ EndGlobal
             string solutionFileContents =
                 @"
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 12
 Project('{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}') = 'ConsoleApplication2', 'ConsoleApplication2\ConsoleApplication2.csproj', '{5B97A3C7-3DEE-47A4-870F-5CB6384FE6A4}'
 	ProjectSection(ProjectDependencies) = postProject
 		{E0D295A1-CAFA-4E68-9929-468657DAAC6C} = {E0D295A1-CAFA-4E68-9929-468657DAAC6C}
@@ -1114,6 +1121,7 @@ EndGlobal
                 Assert.Equal(solutionToolsVersion, instances[1].ToolsVersion);
             }
         }
+#endif
 
         /// <summary>
         /// Test the SolutionProjectGenerator.Generate method has its toolset redirected correctly.
@@ -1323,6 +1331,8 @@ EndGlobal
         /// Tests the algorithm for choosing default Venus configuration values for solutions
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void TestVenusConfigurationDefaults()
         {
             if (FrameworkLocationHelper.PathToDotNetFrameworkV20 == null)
@@ -1351,6 +1361,8 @@ EndGlobal
         /// Tests that the correct value for TargetFrameworkVersion gets set when creating Venus solutions
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void VenusSolutionDefaultTargetFrameworkVersion()
         {
             if (FrameworkLocationHelper.PathToDotNetFrameworkV20 == null)
@@ -1388,6 +1400,8 @@ EndGlobal
         /// Tests the algorithm for choosing target framework paths for ResolveAssemblyReferences for Venus
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void TestTargetFrameworkPaths0()
         {
             if (FrameworkLocationHelper.PathToDotNetFrameworkSdkV20 != null)
@@ -1411,6 +1425,8 @@ EndGlobal
         /// Tests the algorithm for choosing target framework paths for ResolveAssemblyReferences for Venus
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void TestTargetFrameworkPaths1()
         {
             if (FrameworkLocationHelper.PathToDotNetFrameworkV20 == null)
@@ -1435,6 +1451,8 @@ EndGlobal
         /// Tests the algorithm for choosing target framework paths for ResolveAssemblyReferences for Venus
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void TestTargetFrameworkPaths2()
         {
             if (FrameworkLocationHelper.PathToDotNetFrameworkV20 == null)
@@ -1629,6 +1647,8 @@ EndGlobal
         /// solution configuration and SkipInvalidConfigurations is set to true.
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void TestSkipInvalidConfigurationsCase()
         {
             string tmpFileName = FileUtilities.GetTemporaryFile();
@@ -1705,7 +1725,7 @@ EndGlobal
         /// <summary>
         /// When we have a bad framework moniker we expect the build to fail.
         /// </summary>
-        [Fact]
+        [Fact(Skip = "https://github.com/Microsoft/msbuild/issues/515")]
         public void BadFrameworkMonkierExpectBuildToFail()
         {
             string tmpFileName = FileUtilities.GetTemporaryFile();
@@ -1797,7 +1817,7 @@ EndGlobal
         /// When we have a bad framework moniker we expect the build to fail. In this case we are passing a poorly formatted framework moniker.
         /// This will test the exception path where the framework name is invalid rather than just not .netFramework
         /// </summary>
-        [Fact]
+        [Fact(Skip = "https://github.com/Microsoft/msbuild/issues/515")]
         public void BadFrameworkMonkierExpectBuildToFail2()
         {
             string tmpFileName = FileUtilities.GetTemporaryFile();

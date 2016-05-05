@@ -362,6 +362,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void TestCache2()
         {
             string projectBody = ObjectModelHelpers.CleanupFileContents(@"

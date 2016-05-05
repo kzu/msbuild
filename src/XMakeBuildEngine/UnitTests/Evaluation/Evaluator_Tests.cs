@@ -53,10 +53,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// Verify Exist condition used in Import or ImportGroup elements will succeed when in-memory project is available inside projectCollection. 
         /// </summary>
         [Fact]
-        public void VerifyExistsInMemoryProjecs()
+        public void VerifyExistsInMemoryProjects()
         {
-            string fooPath = NativeMethodsShared.IsWindows ? "c:\temp\foo.import" : "/temp/foo.import";
-            string barPath = NativeMethodsShared.IsWindows ? "c:\temp\bar.import" : "/temp/bar.import";
+            string fooPath = NativeMethodsShared.IsWindows ? @"c:\temp\foo.import" : "/temp/foo.import";
+            string barPath = NativeMethodsShared.IsWindows ? @"c:\temp\bar.import" : "/temp/bar.import";
             string projXml = ObjectModelHelpers.CleanupFileContents(@"
                                 <Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns='msbuildnamespace' >
                                     <Import Project=""" + fooPath + @""" Condition=""Exists('" + fooPath + @"')""/>
@@ -133,6 +133,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// subdir\test.proj
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyConditionsInsideOutsideTargets()
         {
             string testtargets = @"
@@ -365,10 +367,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 MockLogger logger = new MockLogger();
                 bool result = project.Build(new ILogger[] { logger });
                 Assert.True(result);
-                logger.AssertLogContains("PropertyOutsideTarget: ..\\test.txt");
+                logger.AssertLogContains("PropertyOutsideTarget: " + Path.Combine("..", "test.txt"));
                 logger.AssertLogContains("PropertyGroupOutsideTarget: test.txt");
-                logger.AssertLogContains("PropertyInsideTarget: ..\\test.txt");
-                logger.AssertLogContains("PropertyGroupInsideTarget: ..\\test.txt");
+                logger.AssertLogContains("PropertyInsideTarget: " + Path.Combine("..", "test.txt"));
+                logger.AssertLogContains("PropertyGroupInsideTarget: " + Path.Combine("..", "test.txt"));
                 logger.AssertLogContains("[TargetDirectoryTargetsImport]");
                 logger.AssertLogDoesntContain("[ProjectDirectoryTargetsImport]");
                 logger.AssertLogContains("[TargetDirectoryTargetsImportGroup]");
@@ -436,7 +438,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             finally
             {
                 BuildParameters.WarnOnUninitializedProperty = originalValue;
-                Directory.Delete(targetDirectory, true);
+                FileUtilities.DeleteWithoutTrailingBackslash(targetDirectory, true);
             }
         }
 
@@ -479,7 +481,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             finally
             {
                 Environment.SetEnvironmentVariable("MSBUILDWARNONUNINITIALIZEDPROPERTY", originalValue);
-                Directory.Delete(targetDirectory, true);
+                FileUtilities.DeleteWithoutTrailingBackslash(targetDirectory, true);
             }
         }
 
@@ -521,7 +523,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             finally
             {
                 Environment.SetEnvironmentVariable("MSBUILDWARNONUNINITIALIZEDPROPERTY", originalValue);
-                Directory.Delete(targetDirectory, true);
+                FileUtilities.DeleteWithoutTrailingBackslash(targetDirectory, true);
             }
         }
 
@@ -563,7 +565,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             finally
             {
                 Environment.SetEnvironmentVariable("MSBUILDWARNONUNINITIALIZEDPROPERTY", originalValue);
-                Directory.Delete(targetDirectory, true);
+                FileUtilities.DeleteWithoutTrailingBackslash(targetDirectory, true);
             }
         }
 
@@ -609,7 +611,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             finally
             {
                 Environment.SetEnvironmentVariable("MSBUILDWARNONUNINITIALIZEDPROPERTY", originalValue);
-                Directory.Delete(targetDirectory, true);
+                FileUtilities.DeleteWithoutTrailingBackslash(targetDirectory, true);
             }
         }
 
@@ -654,7 +656,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             finally
             {
                 BuildParameters.WarnOnUninitializedProperty = originalValue;
-                Directory.Delete(targetDirectory, true);
+                FileUtilities.DeleteWithoutTrailingBackslash(targetDirectory, true);
             }
         }
 
@@ -700,7 +702,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             finally
             {
                 BuildParameters.WarnOnUninitializedProperty = originalValue;
-                Directory.Delete(targetDirectory, true);
+                FileUtilities.DeleteWithoutTrailingBackslash(targetDirectory, true);
             }
         }
 
@@ -1047,8 +1049,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 File.Delete(importPath1);
                 File.Delete(importPath2);
                 File.Delete(projectPath);
-                Directory.Delete(directory2);
-                Directory.Delete(directory);
+                FileUtilities.DeleteWithoutTrailingBackslash(directory2);
+                FileUtilities.DeleteWithoutTrailingBackslash(directory);
             }
         }
 
@@ -1964,11 +1966,13 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal(instance.InitialTargets[1], "q");
         }
 
+#if FEATURE_INSTALLED_MSBUILD
         /// <summary>
         /// Test that the default value for $(MSBuildExtensionsPath) points to "c:\program files\msbuild" in a 64-bit process
         /// or on a 32-bit machine and "c:\program files (x86)\msbuild" in a 32-bit process on a 64-bit machine. 
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void MSBuildExtensionsPathDefault_Legacy()
         {
             string specialPropertyName = "MSBuildExtensionsPath";
@@ -2009,6 +2013,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Environment.SetEnvironmentVariable("msbuildtoolsversion", msbuildVar);
             }
         }
+#endif
 
         /// <summary>
         /// Test that the default value for $(MSBuildExtensionsPath) points to the 32-bit Program Files always 
@@ -2097,11 +2102,13 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal(@"c:\devdiv\vscore\msbuild", project.GetPropertyValue("MSBuildExtensionsPath"));
         }
 
+#if FEATURE_INSTALLED_MSBUILD
         /// <summary>
         /// The default value for $(MSBuildExtensionsPath32) should point to "c:\program files (x86)\msbuild" on a 64 bit machine. 
         /// We can't test that unless we are on a 64 bit box, but this test will work on either
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void MSBuildExtensionsPath32Default()
         {
             // On a 64 bit machine we always want to use the program files x86.  If we are running as a 64 bit process then this variable will be set correctly
@@ -2132,6 +2139,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Environment.SetEnvironmentVariable("MSBuildExtensionsPath32", extensionsPath32Env);
             }
         }
+#endif
 
         /// <summary>
         /// Set an env var called MSBuildExtensionsPath32 to some value, for the purpose
@@ -2170,12 +2178,14 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal(@"c:\devdiv\vscore\msbuild", msbuildExtensionsPath32Value);
         }
 
+#if FEATURE_INSTALLED_MSBUILD
         /// <summary>
         /// The default value for $(MSBuildExtensionsPath64) should point to "c:\program files\msbuild" on a 64 bit machine, 
         /// and should be empty on a 32-bit machine. 
         /// We can't test that unless we are on a 64 bit box, but this test will work on either
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void MSBuildExtensionsPath64Default()
         {
             string expected = string.Empty;
@@ -2207,6 +2217,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             Assert.Equal(expected, project.GetPropertyValue("MSBuildExtensionsPath64"));
         }
+#endif
 
         /// <summary>
         /// Set an env var called MSBuildExtensionsPath64 to some value, for the purpose
@@ -2312,6 +2323,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// Test standard reserved properties
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void ReservedProjectProperties()
         {
             string file = NativeMethodsShared.IsWindows ? @"c:\foo\bar.csproj" : "/foo/bar.csproj";
@@ -2393,10 +2406,12 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("biz", project.GetPropertyValue("MSBuildProjectName"));
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// Verify when a node count is passed through on the project collection that the correct number is used to evaluate the msbuildNodeCount
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyMsBuildNodeCountReservedProperty()
         {
             string content = ObjectModelHelpers.CleanupFileContents(@"
@@ -2427,6 +2442,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal(true, result);
             logger.AssertLogContains(String.Format("[{0}]", 4));
         }
+#endif
 
         /// <summary>
         /// Verify when no node count is passed that we evaluate MsBuildNodeCount to 1
@@ -2937,7 +2953,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
 
                 Directory.CreateDirectory(projectDirectory);
@@ -2962,7 +2978,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
             }
         }
@@ -2998,7 +3014,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
 
                 Directory.CreateDirectory(projectDirectory);
@@ -3023,7 +3039,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
             }
         }
@@ -3058,7 +3074,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
 
                 Directory.CreateDirectory(projectDirectory);
@@ -3083,7 +3099,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
             }
         }
@@ -3130,7 +3146,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
 
                 Directory.CreateDirectory(projectDirectory);
@@ -3159,7 +3175,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
             }
         }
@@ -3203,7 +3219,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
 
                 Directory.CreateDirectory(projectDirectory);
@@ -3232,7 +3248,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
             }
         }
@@ -3268,7 +3284,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
 
                 Directory.CreateDirectory(projectDirectory);
@@ -3293,7 +3309,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
             }
         }
@@ -3330,7 +3346,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
 
                 Directory.CreateDirectory(projectDirectory);
@@ -3355,7 +3371,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
             }
         }
@@ -3877,7 +3893,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
 
                 Directory.CreateDirectory(projectDirectory);
@@ -3931,7 +3947,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (Directory.Exists(projectDirectory))
                 {
-                    Directory.Delete(projectDirectory, true /* recursive delete */);
+                    FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, true /* recursive delete */);
                 }
 
                 Directory.CreateDirectory(projectDirectory);
@@ -4106,7 +4122,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             {
                 if (File.Exists(directory))
                 {
-                    Directory.Delete(directory);
+                    FileUtilities.DeleteWithoutTrailingBackslash(directory);
                 }
 
                 file0 = Path.Combine(directory, "my.proj");
@@ -4149,7 +4165,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 File.Delete(file2);
                 File.Delete(file3);
                 File.Delete(file4);
-                Directory.Delete(directory, true);
+                FileUtilities.DeleteWithoutTrailingBackslash(directory, true);
             }
         }
 

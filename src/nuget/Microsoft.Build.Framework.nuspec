@@ -15,24 +15,20 @@
       This package includes APIs that support writing MSBuild tasks.
     </description>
     <copyright>Copyright © Microsoft Corporation</copyright>
-    <frameworkAssemblies>
-      <frameworkAssembly assemblyName="Microsoft.Build.Framework" targetFramework="net45" />
-    </frameworkAssemblies>
     <dependencies>
-      <group targetFramework="net45" />
       <group targetFramework="dotnet">
-        <dependency id="System.Collections" version="4.0.10" />
-        <dependency id="System.Diagnostics.Debug" version="4.0.10" />
-        <dependency id="System.Globalization" version="4.0.10" />
-        <dependency id="System.Runtime" version="4.0.20" />
-        <dependency id="System.Runtime.InteropServices" version="4.0.20" />
-        <dependency id="System.Threading" version="4.0.10" />
-        <dependency id="System.Threading.Thread" version="4.0.0-beta-23109" />
+        <dependency id="System.Collections" version="4.0.11-rc3-23908" />
+        <dependency id="System.Diagnostics.Debug" version="4.0.11-rc3-23908" />
+        <dependency id="System.Globalization" version="4.0.11-rc3-23908" />
+        <dependency id="System.Runtime" version="4.1.0-rc3-23908" />
+        <dependency id="System.Runtime.InteropServices" version="4.1.0-rc3-23908" />
+        <dependency id="System.Runtime.InteropServices.PInvoke" version="4.0.0-rc3-23908" />
+        <dependency id="System.Threading" version="4.0.11-rc3-23908" />
+        <dependency id="System.Threading.Thread" version="4.0.0-rc3-23908" />
       </group>
     </dependencies>
   </metadata>
   <files>
     <file src="Microsoft.Build.Framework.dll" target="lib\dotnet" />
-    <file src="_._" target="lib\net45" />
   </files>
 </package>

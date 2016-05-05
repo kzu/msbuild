@@ -57,7 +57,18 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Read toolset information from the current exe path
         /// </summary>
-        Local = 4
+        Local = 4,
+
+        Default = None
+#if FEATURE_SYSTEM_CONFIGURATION
+                | ConfigurationFile
+#endif
+#if FEATURE_REGISTRY_TOOLSETS
+                | Registry
+#endif
+#if !FEATURE_SYSTEM_CONFIGURATION && !FEATURE_REGISTRY_TOOLSETS
+                | Local
+#endif
     }
 
     /// <summary>
@@ -222,7 +233,7 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="globalProperties">The default global properties to use. May be null.</param>
         public ProjectCollection(IDictionary<string, string> globalProperties)
-            : this(globalProperties, null, ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry)
+            : this(globalProperties, null, ToolsetDefinitionLocations.Default)
         {
         }
 
@@ -1364,7 +1375,7 @@ namespace Microsoft.Build.Evaluation
             GC.SuppressFinalize(this);
         }
 
-        #region IBuildComponent Members
+#region IBuildComponent Members
 
         /// <summary>
         /// Initializes the component with the component host.
@@ -1383,7 +1394,7 @@ namespace Microsoft.Build.Evaluation
             _host = null;
         }
 
-        #endregion
+#endregion
 
         /// <summary>
         /// Unloads a project XML root element from the cache entirely, if it is not
@@ -1649,16 +1660,50 @@ namespace Microsoft.Build.Evaluation
             _loggingService.OnlyLogCriticalEvents = onlyLogCriticalEvents;
         }
 
+#if FEATURE_SYSTEM_CONFIGURATION
+        /// <summary>
+        /// Reset the toolsets using the provided toolset reader, used by unit tests
+        /// </summary>
+        internal void ResetToolsetsForTests(ToolsetConfigurationReader configurationReaderForTestsOnly)
+        {
+            InitializeToolsetCollection(configReader:configurationReaderForTestsOnly);
+        }
+#endif
+
+#if FEATURE_WIN32_REGISTRY
+        /// <summary>
+        /// Reset the toolsets using the provided toolset reader, used by unit tests
+        /// <summary>
+        internal void ResetToolsetsForTests(ToolsetRegistryReader registryReaderForTestsOnly)
+        {
+            InitializeToolsetCollection(registryReader:registryReaderForTestsOnly);
+        }
+#endif
+
         /// <summary>
         /// Populate Toolsets with a dictionary of (toolset version, Toolset) 
         /// using information from the registry and config file, if any.  
         /// </summary>
-        private void InitializeToolsetCollection()
+        private void InitializeToolsetCollection(
+#if FEATURE_WIN32_REGISTRY
+                ToolsetRegistryReader registryReader = null,
+#endif
+#if FEATURE_SYSTEM_CONFIGURATION
+                ToolsetConfigurationReader configReader = null
+#endif
+                )
         {
             _toolsets = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
 
             // We only want our local toolset (as defined in MSBuild.exe.config) when we're operating locally...
-            _defaultToolsVersion = ToolsetReader.ReadAllToolsets(_toolsets, EnvironmentProperties, _globalProperties, _toolsetDefinitionLocations);
+            _defaultToolsVersion = ToolsetReader.ReadAllToolsets(_toolsets,
+#if FEATURE_WIN32_REGISTRY
+                    registryReader,
+#endif
+#if FEATURE_SYSTEM_CONFIGURATION
+                    configReader,
+#endif
+                    EnvironmentProperties, _globalProperties, _toolsetDefinitionLocations);
 
             _toolsetsVersion++;
         }
@@ -1791,7 +1836,7 @@ namespace Microsoft.Build.Evaluation
                 _originalLogger = originalLogger;
             }
 
-            #region IEventSource Members
+#region IEventSource Members
 
             /// <summary>
             /// The Message logging event
@@ -1863,9 +1908,9 @@ namespace Microsoft.Build.Evaluation
             /// </summary>
             public event AnyEventHandler AnyEventRaised;
 
-            #endregion
+#endregion
 
-            #region ILogger Members
+#region ILogger Members
 
             /// <summary>
             /// The logger verbosity
@@ -1957,7 +2002,7 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            #endregion
+#endregion
 
             /// <summary>
             /// Registers for all of the events on the specified event source.

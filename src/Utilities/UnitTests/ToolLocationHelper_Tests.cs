@@ -13,7 +13,9 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
+#if FEATURE_WIN32_REGISTRY
 using Microsoft.Win32;
+#endif
 
 
 
@@ -46,6 +48,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetApiContractReferencesHandlesNonExistingLocation()
         {
             string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -54,10 +57,11 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
         public void GetApiContractReferencesFindsWinMDs()
         {
             string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            string referenceDirectory = Path.Combine(tempDirectory, @"References\Foo\Bar");
+            string referenceDirectory = Path.Combine(tempDirectory, Path.Combine("References", "Foo", "Bar"));
 
             try
             {
@@ -72,16 +76,17 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(tempDirectory))
                 {
-                    Directory.Delete(tempDirectory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
                 }
             }
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GatherExtensionSDKsInvalidVersionDirectory()
         {
             string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            string sdkDirectory = Path.Combine(tempDirectory, @"Foo\Bar");
+            string sdkDirectory = Path.Combine(tempDirectory, "Foo", "Bar");
 
             try
             {
@@ -95,16 +100,17 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(tempDirectory))
                 {
-                    Directory.Delete(tempDirectory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
                 }
             }
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GatherExtensionSDKsNoManifest()
         {
             string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            string sdkDirectory = Path.Combine(tempDirectory, @"Foo\1.0");
+            string sdkDirectory = Path.Combine(tempDirectory, "Foo", "1.0");
 
             try
             {
@@ -118,21 +124,22 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(tempDirectory))
                 {
-                    Directory.Delete(tempDirectory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
                 }
             }
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GatherExtensionSDKsEmptyManifest()
         {
             string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            string sdkDirectory = Path.Combine(tempDirectory, @"Foo\1.0");
+            string sdkDirectory = Path.Combine(tempDirectory, "Foo", "1.0");
 
             try
             {
                 Directory.CreateDirectory(sdkDirectory);
-                File.WriteAllText(Path.Combine(sdkDirectory, "sdkManifest.xml"), "");
+                File.WriteAllText(Path.Combine(sdkDirectory, "SDKManifest.xml"), "");
                 DirectoryInfo info = new DirectoryInfo(tempDirectory);
                 TargetPlatformSDK sdk = new TargetPlatformSDK("Foo", new Version(0, 0), String.Empty);
                 ToolLocationHelper.GatherExtensionSDKs(info, sdk);
@@ -142,21 +149,22 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(tempDirectory))
                 {
-                    Directory.Delete(tempDirectory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
                 }
             }
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GatherExtensionSDKsGarbageManifest()
         {
             string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            string sdkDirectory = Path.Combine(tempDirectory, @"Foo\1.0");
+            string sdkDirectory = Path.Combine(tempDirectory, "Foo", "1.0");
 
             try
             {
                 Directory.CreateDirectory(sdkDirectory);
-                File.WriteAllText(Path.Combine(sdkDirectory, "sdkManifest.xml"), "Garbaggggge");
+                File.WriteAllText(Path.Combine(sdkDirectory, "SDKManifest.xml"), "Garbaggggge");
                 DirectoryInfo info = new DirectoryInfo(tempDirectory);
                 TargetPlatformSDK sdk = new TargetPlatformSDK("Foo", new Version(0, 0), String.Empty);
                 ToolLocationHelper.GatherExtensionSDKs(info, sdk);
@@ -166,7 +174,7 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(tempDirectory))
                 {
-                    Directory.Delete(tempDirectory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
                 }
             }
         }
@@ -209,7 +217,7 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(tempDirectory))
                 {
-                    Directory.Delete(tempDirectory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
                 }
             }
         }
@@ -328,7 +336,7 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(tempDirectory))
                 {
-                    Directory.Delete(tempDirectory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
                 }
             }
         }
@@ -365,7 +373,11 @@ namespace Microsoft.Build.UnitTests
                 SharedDotNetFrameworkArchitecture.Current
             );
 
+#if FEATURE_INSTALLED_MSBUILD
             Assert.Equal(Path.GetDirectoryName(typeof(object).GetTypeInfo().Module.FullyQualifiedName), path);
+#else
+            Assert.Null(path);
+#endif
         }
 
         /*
@@ -374,6 +386,7 @@ namespace Microsoft.Build.UnitTests
          * Search for a whidbey when whidbey is the current version.
          */
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
         public void FindFrameworksPathRunningUnderWhidbey()
         {
             string path = FrameworkLocationHelper.FindDotNetFrameworkPath
@@ -393,6 +406,7 @@ namespace Microsoft.Build.UnitTests
         * Search for a whidbey when orcas is the current version.
         */
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
         public void FindFrameworksPathRunningUnderOrcas()
         {
             string path = FrameworkLocationHelper.FindDotNetFrameworkPath
@@ -412,6 +426,7 @@ namespace Microsoft.Build.UnitTests
         * Search for a whidbey when orcas is the current version.
         */
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
         public void FindFrameworksPathRunningUnderEverett()
         {
             string path = FrameworkLocationHelper.FindDotNetFrameworkPath
@@ -468,11 +483,13 @@ namespace Microsoft.Build.UnitTests
                     SharedDotNetFrameworkArchitecture.Current
                 );
 
-            Directory.Delete(fakeEverettPath);
+            FileUtilities.DeleteWithoutTrailingBackslash(fakeEverettPath);
             Assert.Equal(null, path);
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void ExerciseMiscToolLocationHelperMethods()
         {
             Assert.Equal(ToolLocationHelper.GetDotNetFrameworkVersionFolderPrefix(TargetDotNetFrameworkVersion.Version11), FrameworkLocationHelper.dotNetFrameworkVersionFolderPrefixV11);
@@ -548,31 +565,32 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void TestGetPathToBuildToolsFile()
         {
-            string net20Path = ToolLocationHelper.GetPathToDotNetFrameworkFile("msbuild.exe", TargetDotNetFrameworkVersion.Version20);
+            string net20Path = ToolLocationHelper.GetPathToDotNetFrameworkFile("MSBuild.exe", TargetDotNetFrameworkVersion.Version20);
 
             if (net20Path != null)
             {
-                Assert.Equal(net20Path, ToolLocationHelper.GetPathToBuildToolsFile("msbuild.exe", "2.0"));
+                Assert.Equal(net20Path, ToolLocationHelper.GetPathToBuildToolsFile("MSBuild.exe", "2.0"));
             }
 
-            string net35Path = ToolLocationHelper.GetPathToDotNetFrameworkFile("msbuild.exe", TargetDotNetFrameworkVersion.Version35);
+            string net35Path = ToolLocationHelper.GetPathToDotNetFrameworkFile("MSBuild.exe", TargetDotNetFrameworkVersion.Version35);
 
             if (net35Path != null)
             {
-                Assert.Equal(net35Path, ToolLocationHelper.GetPathToBuildToolsFile("msbuild.exe", "3.5"));
+                Assert.Equal(net35Path, ToolLocationHelper.GetPathToBuildToolsFile("MSBuild.exe", "3.5"));
             }
 
             Assert.Equal(
-                    ToolLocationHelper.GetPathToDotNetFrameworkFile("msbuild.exe", TargetDotNetFrameworkVersion.Version40),
-                    ToolLocationHelper.GetPathToBuildToolsFile("msbuild.exe", "4.0")
+                    ToolLocationHelper.GetPathToDotNetFrameworkFile("MSBuild.exe", TargetDotNetFrameworkVersion.Version40),
+                    ToolLocationHelper.GetPathToBuildToolsFile("MSBuild.exe", "4.0")
                 );
 
-            string tv12path = Path.Combine(ProjectCollection.GlobalProjectCollection.GetToolset(ObjectModelHelpers.MSBuildDefaultToolsVersion).ToolsPath, "msbuild.exe");
+            string tv12path = Path.Combine(ProjectCollection.GlobalProjectCollection.GetToolset(ObjectModelHelpers.MSBuildDefaultToolsVersion).ToolsPath, "MSBuild.exe");
 
-            Assert.Equal(tv12path, ToolLocationHelper.GetPathToBuildToolsFile("msbuild.exe", ObjectModelHelpers.MSBuildDefaultToolsVersion));
-            Assert.Equal(tv12path, ToolLocationHelper.GetPathToBuildToolsFile("msbuild.exe", ToolLocationHelper.CurrentToolsVersion));
+            Assert.Equal(tv12path, ToolLocationHelper.GetPathToBuildToolsFile("MSBuild.exe", ObjectModelHelpers.MSBuildDefaultToolsVersion));
+            Assert.Equal(tv12path, ToolLocationHelper.GetPathToBuildToolsFile("MSBuild.exe", ToolLocationHelper.CurrentToolsVersion));
         }
 
         [Fact(Skip = "Ignored in MSTest")]
@@ -761,14 +779,14 @@ namespace Microsoft.Build.UnitTests
             Assert.Equal(ToolLocationHelper.GetDotNetFrameworkSdkInstallKeyValue(TargetDotNetFrameworkVersion.Version46, VisualStudioVersion.Version140), InstallationFolder);
         }
 
+#if FEATURE_REGISTRY_SDKS
         [Fact]
+#else
+        [Fact (Skip="Registry SDKs not supported")]
+#endif
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
         public void GetPathToDotNetFrameworkSdk()
         {
-            if (NativeMethodsShared.IsUnixLike)
-            {
-                return; // "Program Files is not supported under Unix"
-            }
-
             // Test out of range .net version.
             foreach (var vsVersion in EnumVisualStudioVersions())
             {
@@ -844,15 +862,11 @@ namespace Microsoft.Build.UnitTests
         }
 
 #pragma warning disable 618 //The test below tests a deprecated API. We disable the warning for obsolete methods for this particular test
-
+#if FEATURE_WIN32_REGISTRY
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
         public void GetPathToWindowsSdk()
         {
-            if (NativeMethodsShared.IsUnixLike)
-            {
-                return; // "Registry access is not supported under Unix"
-            }
-
             // Test out of range .net version.
             foreach (var vsVersion in EnumVisualStudioVersions())
             {
@@ -880,6 +894,7 @@ namespace Microsoft.Build.UnitTests
                 Assert.Equal(ToolLocationHelper.GetPathToWindowsSdk(TargetDotNetFrameworkVersion.Version46, vsVersion), pathToWindowsSdkV81);
             }
         }
+#endif
 
 #pragma warning restore 618
 
@@ -991,7 +1006,9 @@ namespace Microsoft.Build.UnitTests
             Assert.True(success); // "Build Failed.  See Std Out for details."
         }
 
+#if FEATURE_CODETASKFACTORY
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyToolsetAndToolLocationHelperAgreeWhenVisualStudioVersionIsEmpty()
         {
             string projectContents = @"
@@ -1033,6 +1050,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyToolsetAndToolLocationHelperAgreeWhenVisualStudioVersionIs10()
         {
             string projectContents = @"
@@ -1131,6 +1149,7 @@ namespace Microsoft.Build.UnitTests
 
             Assert.True(success); // "Build Failed.  See Std Out for details."
         }
+#endif
 
         #region GenerateReferenceAssemblyPath
         [Fact]
@@ -1219,6 +1238,7 @@ namespace Microsoft.Build.UnitTests
         /// which indicates there was a problem generating the reference assembly path.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void GenerateReferencAssemblyPathTooLong()
         {
             Assert.Throws<InvalidOperationException>(() =>
@@ -1247,6 +1267,7 @@ namespace Microsoft.Build.UnitTests
         /// do not have anything to chain with.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void ChainReferenceAssembliesRedistExistsNoRedistList()
         {
             string path = ToolLocationHelper.ChainReferenceAssemblyPath(@"PathDoesNotExistSoICannotChain");
@@ -1290,12 +1311,12 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(redist40Directory))
                 {
-                    Directory.Delete(redist40Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(redist40Directory, true);
                 }
 
                 if (Directory.Exists(redist41Directory))
                 {
-                    Directory.Delete(redist41Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
                 }
             }
         }
@@ -1325,7 +1346,7 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(redist41Directory))
                 {
-                    Directory.Delete(redist41Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
                 }
             }
         }
@@ -1355,7 +1376,7 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(redist41Directory))
                 {
-                    Directory.Delete(redist41Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
                 }
             }
         }
@@ -1385,7 +1406,7 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(redist41Directory))
                 {
-                    Directory.Delete(redist41Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
                 }
             }
         }
@@ -1415,7 +1436,7 @@ namespace Microsoft.Build.UnitTests
                 {
                     if (Directory.Exists(redist40Directory))
                     {
-                        Directory.Delete(redist40Directory, true);
+                        FileUtilities.DeleteWithoutTrailingBackslash(redist40Directory, true);
                     }
                 }
             }
@@ -1448,7 +1469,7 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(redist41Directory))
                 {
-                    Directory.Delete(redist41Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
                 }
             }
         }
@@ -1483,7 +1504,7 @@ namespace Microsoft.Build.UnitTests
                 {
                     if (Directory.Exists(redist41Directory))
                     {
-                        Directory.Delete(redist41Directory, true);
+                        FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
                     }
                 }
             }
@@ -1493,6 +1514,7 @@ namespace Microsoft.Build.UnitTests
         /// Make sure we get the correct exception when the xml file points to an included framwork which has invalid path chars.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void ChainReferenceAssembliesRedistPathTooLong()
         {
             Assert.Throws<InvalidOperationException>(() =>
@@ -1518,7 +1540,7 @@ namespace Microsoft.Build.UnitTests
                 {
                     if (Directory.Exists(redist41Directory))
                     {
-                        Directory.Delete(redist41Directory, true);
+                        FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
                     }
                 }
             }
@@ -1548,15 +1570,15 @@ namespace Microsoft.Build.UnitTests
 
             string tempDirectory = Path.Combine(Path.GetTempPath(), "GetPathToReferenceAssembliesWithRootGoodWithChain");
 
-            string framework41Directory = Path.Combine(tempDirectory, "MyFramework\\v4.1\\");
+            string framework41Directory = Path.Combine(tempDirectory, "MyFramework", "v4.1") + Path.DirectorySeparatorChar;
             string framework41redistDirectory = Path.Combine(framework41Directory, "RedistList");
             string framework41RedistList = Path.Combine(framework41redistDirectory, "FrameworkList.xml");
 
-            string framework40Directory = Path.Combine(tempDirectory, "MyFramework\\v4.0\\");
+            string framework40Directory = Path.Combine(tempDirectory, "MyFramework", "v4.0") + Path.DirectorySeparatorChar;
             string framework40redistDirectory = Path.Combine(framework40Directory, "RedistList");
             string framework40RedistList = Path.Combine(framework40redistDirectory, "FrameworkList.xml");
 
-            string framework39Directory = Path.Combine(tempDirectory, "MyFramework\\v3.9\\");
+            string framework39Directory = Path.Combine(tempDirectory, "MyFramework", "v3.9") + Path.DirectorySeparatorChar;
             string framework39redistDirectory = Path.Combine(framework39Directory, "RedistList");
             string framework39RedistList = Path.Combine(framework39redistDirectory, "FrameworkList.xml");
 
@@ -1584,17 +1606,17 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(framework41Directory))
                 {
-                    Directory.Delete(framework41Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(framework41Directory, true);
                 }
 
                 if (Directory.Exists(framework40Directory))
                 {
-                    Directory.Delete(framework40Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(framework40Directory, true);
                 }
 
                 if (Directory.Exists(framework39Directory))
                 {
-                    Directory.Delete(framework39Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(framework39Directory, true);
                 }
             }
         }
@@ -1645,12 +1667,12 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(framework40Directory))
                 {
-                    Directory.Delete(framework40Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(framework40Directory, true);
                 }
 
                 if (Directory.Exists(framework39Directory))
                 {
-                    Directory.Delete(framework39Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(framework39Directory, true);
                 }
             }
         }
@@ -1703,12 +1725,12 @@ namespace Microsoft.Build.UnitTests
             {
                 if (Directory.Exists(framework41Directory))
                 {
-                    Directory.Delete(framework41Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(framework41Directory, true);
                 }
 
                 if (Directory.Exists(framework40Directory))
                 {
-                    Directory.Delete(framework40Directory, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(framework40Directory, true);
                 }
             }
         }
@@ -1802,6 +1824,7 @@ namespace Microsoft.Build.UnitTests
         /// If they are not installed, the test should be ignored.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void GetPathToReferenceAssembliesDefaultLocation45()
         {
             FrameworkNameVersioning frameworkName = null;
@@ -1839,17 +1862,17 @@ namespace Microsoft.Build.UnitTests
             Assert.Equal(0, directories.Count); // "Expected the method to return no paths."
         }
 
+#if FEATURE_SPECIAL_FOLDERS
         /// <summary>
         /// Make sure we choose the correct path for program files based on the environment variables
         /// </summary>
         [Fact]
+#else
+        [Fact(Skip = "Special folders not supported")]
+#endif
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
         public void TestGenerateProgramFiles32()
         {
-            if (NativeMethodsShared.IsUnixLike)
-            {
-                return; // "Program Files is not supported under Unix"
-            }
-
             string programFilesX86Original = Environment.GetEnvironmentVariable("ProgramFiles(x86)");
             string programFiles = Environment.GetEnvironmentVariable("ProgramFiles");
             try
@@ -1873,13 +1896,9 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get the correct reference assembly path out of the framework location helper
         /// </summary>
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)] // "No ProgramFiles known location outside Windows"
         public void TestGeneratedReferenceAssemblyPath()
         {
-            if (!NativeMethodsShared.IsWindows)
-            {
-                return; // "No ProgramFiles known location outside Windows"
-            }
-
             string programFiles32 = FrameworkLocationHelper.GenerateProgramFiles32();
             string referenceAssemblyRoot = FrameworkLocationHelper.GenerateProgramFilesReferenceAssemblyRoot();
             string pathToCombineWith = "Reference Assemblies\\Microsoft\\Framework";
@@ -1888,7 +1907,6 @@ namespace Microsoft.Build.UnitTests
 
             Assert.True(referenceAssemblyRoot.Equals(fullPath, StringComparison.OrdinalIgnoreCase), String.Format("Expected the path to be '{0}' but it was '{1}'", fullPath, referenceAssemblyRoot));
         }
-
 
         #endregion
 
@@ -2101,6 +2119,7 @@ namespace Microsoft.Build.UnitTests
         /// We expect to always get the same path which is returned by GetPathToReferenceAssemblies.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void GetPathToStandardLibraries64Bit40()
         {
             IList<string> referencePaths = ToolLocationHelper.GetPathToReferenceAssemblies(new FrameworkNameVersioning(".NETFramework", new Version("4.0")));
@@ -2297,6 +2316,7 @@ namespace Microsoft.Build.UnitTests
         }
         #endregion
 
+#if FEATURE_WIN32_REGISTRY
         /// <summary>
         /// Verify we can an argument exception if we try and pass a empty registry root
         /// </summary>
@@ -2373,13 +2393,9 @@ namespace Microsoft.Build.UnitTests
         /// Verify we can get a list of directories out of the public API.
         /// </summary>
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
         public void GetAssemblyFoldersExInfoTest()
         {
-            if (NativeMethodsShared.IsUnixLike)
-            {
-                return; // "No Registry access if not under Windows"
-            }
-
             SetupAssemblyFoldersExTestConditionRegistryKey();
             IList<AssemblyFoldersExInfo> directories = null;
             try
@@ -2419,6 +2435,89 @@ namespace Microsoft.Build.UnitTests
             {
             }
         }
+#endif
+
+        [Fact]
+        public void GetPathToStandardLibrariesWithCustomTargetFrameworkRoot()
+        {
+            string frameworkName = "Foo Framework";
+            string frameworkVersion = "v0.1";
+            string rootDir = Path.Combine(Path.GetTempPath(), "framework-root");
+
+            try {
+                string asmPath = CreateNewFrameworkAndGetAssembliesPath(frameworkName, frameworkVersion, rootDir);
+
+                string stdLibPath = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, String.Empty, null, rootDir);
+                Assert.Equal(asmPath, stdLibPath);
+            } finally {
+                FileUtilities.DeleteDirectoryNoThrow(rootDir, recursive:true);
+            }
+        }
+
+        [Fact]
+        public void GetPathToStandardLibrariesWithNullTargetFrameworkRootPath()
+        {
+            string frameworkName = ".NETFramework";
+            string frameworkVersion = "v4.5";
+
+            string v45Path = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, String.Empty);
+            // This look up should fall back the default path with the .NET frameworks
+            string v45PathWithNullRoot = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, String.Empty, null);
+
+            Assert.Equal(v45Path, v45PathWithNullRoot);
+        }
+
+        [Fact]
+        public void GetPathToReferenceAssembliesWithCustomTargetFrameworkRoot()
+        {
+            string frameworkName = "Foo Framework";
+            string frameworkVersion = "v0.1";
+            string rootDir = Path.Combine(Path.GetTempPath(), "framework-root");
+
+            try {
+                string asmPath = CreateNewFrameworkAndGetAssembliesPath(frameworkName, frameworkVersion, rootDir);
+
+                var stdLibPaths = ToolLocationHelper.GetPathToReferenceAssemblies(frameworkName, frameworkVersion, String.Empty, rootDir);
+                Assert.Equal(2, stdLibPaths.Count);
+
+                Assert.Equal(Path.Combine(rootDir, frameworkName, frameworkVersion) + Path.DirectorySeparatorChar.ToString(), stdLibPaths[0]);
+                Assert.Equal(asmPath + Path.DirectorySeparatorChar.ToString(), stdLibPaths[1]);
+            } finally {
+                FileUtilities.DeleteDirectoryNoThrow(rootDir, recursive:true);
+            }
+        }
+
+        [Fact]
+        public void GetPathToReferenceAssembliesWithNullTargetFrameworkRootPath()
+        {
+            string frameworkName = ".NETFramework";
+            string frameworkVersion = "v4.5";
+
+            var v45Paths = ToolLocationHelper.GetPathToReferenceAssemblies(frameworkName, frameworkVersion, String.Empty);
+
+            // This look up should fall back the default path with the .NET frameworks
+            var v45PathsWithNullRoot = ToolLocationHelper.GetPathToReferenceAssemblies(frameworkName, frameworkVersion, String.Empty, null);
+
+            Assert.Equal(v45Paths, v45PathsWithNullRoot);
+        }
+
+        string CreateNewFrameworkAndGetAssembliesPath(string frameworkName, string frameworkVersion, string rootDir)
+        {
+            string frameworkListXml = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<FileList  Name=""{0}"" TargetFrameworkDirectory=""..\assemblies"">
+</FileList>";
+
+            string redistPath = Path.Combine(rootDir, frameworkName, frameworkVersion, "RedistList");
+            string asmPath = Path.Combine(rootDir, frameworkName, frameworkVersion, "assemblies");
+
+            Directory.CreateDirectory(redistPath);
+            Directory.CreateDirectory(Path.Combine(rootDir, frameworkName, frameworkVersion, "assemblies"));
+
+            File.WriteAllText(Path.Combine(redistPath, "FrameworkList.xml"), String.Format(frameworkListXml, frameworkName));
+            File.WriteAllText(Path.Combine(asmPath, "mscorlib.dll"), String.Empty);
+
+            return asmPath;
+        }
 
         /*
         * Method:   GetDirectories
@@ -2454,6 +2553,7 @@ namespace Microsoft.Build.UnitTests
             return path.Contains("{runtime-base}") || Directory.Exists(path);
         }
 
+#if FEATURE_WIN32_REGISTRY
         private static string GetRegistryValueHelper(RegistryHive hive, RegistryView view, string subKeyPath, string name)
         {
             using (var key = RegistryHelper.OpenBaseKey(hive, view))
@@ -2467,7 +2567,7 @@ namespace Microsoft.Build.UnitTests
 
             return null;
         }
-
+#endif
         private static IEnumerable<VisualStudioVersion> EnumVisualStudioVersions()
         {
             for (VisualStudioVersion vsVersion = VisualStudioVersion.Version100; vsVersion <= VisualStudioVersion.VersionLatest; ++vsVersion)
@@ -2694,10 +2794,12 @@ namespace Microsoft.Build.UnitTests
     /// </summary>
     public class GetPlatformExtensionSDKLocationsTestFixture : IDisposable
     {
+#if FEATURE_WIN32_REGISTRY
         // Create delegates to mock the registry for the registry portion of the test.
         private Microsoft.Build.Shared.OpenBaseKey _openBaseKey = new Microsoft.Build.Shared.OpenBaseKey(GetBaseKey);
         internal Microsoft.Build.Shared.GetRegistrySubKeyNames getRegistrySubKeyNames = new Microsoft.Build.Shared.GetRegistrySubKeyNames(GetRegistrySubKeyNames);
         internal Microsoft.Build.Shared.GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue;
+#endif
 
         // Path to the fake SDk directory structure created under the temp directory.
         private string _fakeStructureRoot = null;
@@ -2705,7 +2807,9 @@ namespace Microsoft.Build.UnitTests
 
         public GetPlatformExtensionSDKLocationsTestFixture()
         {
+#if FEATURE_WIN32_REGISTRY
             getRegistrySubKeyDefaultValue = new Microsoft.Build.Shared.GetRegistrySubKeyDefaultValue(GetRegistrySubKeyDefaultValue);
+#endif
 
             _fakeStructureRoot = MakeFakeSDKStructure();
             _fakeStructureRoot2 = MakeFakeSDKStructure2();
@@ -2872,6 +2976,7 @@ namespace Microsoft.Build.UnitTests
         /// 
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void ResolveFromDirectoryPathTooLong()
         {
             Assert.Throws<PathTooLongException>(() =>
@@ -2888,29 +2993,24 @@ namespace Microsoft.Build.UnitTests
             }
            );
         }
+
         /// <summary>
         /// Verify we get no resolved paths when we pass in a root with invalid chars
         /// </summary>
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)] // No invalid characters on Unix
         public void ResolveFromDirectoryInvalidChar()
         {
-            if (NativeMethodsShared.IsUnixLike)
-            {
-                return; // "No invalid characters on Unix"
-            }
+            Dictionary<TargetPlatformSDK, TargetPlatformSDK> targetPlatform =
+                new Dictionary<TargetPlatformSDK, TargetPlatformSDK>();
 
-            Assert.Throws<ArgumentException>(() =>
-            {
-                Dictionary<TargetPlatformSDK, TargetPlatformSDK> targetPlatform = new Dictionary<TargetPlatformSDK, TargetPlatformSDK>();
-
-                // Try a path with invalid chars which does not exist
-                string directoryWithInvalidChars = "c:\\<>?";
-                List<string> paths = new List<string>() { directoryWithInvalidChars };
-                ToolLocationHelper.GatherSDKListFromDirectory(paths, targetPlatform);
-                Assert.Equal(0, targetPlatform.Count);
-            }
-           );
+            // Try a path with invalid chars which does not exist
+            string directoryWithInvalidChars = "c:\\<>?";
+            List<string> paths = new List<string>() {directoryWithInvalidChars};
+            Assert.Throws<ArgumentException>(
+                () => { ToolLocationHelper.GatherSDKListFromDirectory(paths, targetPlatform); });
         }
+
         /// <summary>
         /// Verify we get no resolved paths when we pass in a path which does not exist.
         /// 
@@ -2962,11 +3062,12 @@ namespace Microsoft.Build.UnitTests
         /// present in the manifest and the SDK is a framework extension SDK
         /// </summary>
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
         public void VerifyFrameworkSdkWithOldManifest()
         {
             string tmpRootDirectory = Path.GetTempPath();
-            string frameworkPathPattern = @"Microsoft SDKs\Windows\v8.0\ExtensionSDKs\MyFramework";
-            string frameworkPathPattern2 = @"ExtensionSDKs\MyFramework";
+            string frameworkPathPattern = NativeMethodsShared.IsWindows ? @"Microsoft SDKs\Windows\v8.0\ExtensionSDKs\MyFramework" : "Microsoft SDKs/Windows/v8.0/ExtensionSDKs/MyFramework";
+            string frameworkPathPattern2 = NativeMethodsShared.IsWindows ? @"ExtensionSDKs\MyFramework" : "ExtensionSDKs/MyFramework";
 
             string frameworkPath = Path.Combine(tmpRootDirectory, frameworkPathPattern);
             string manifestFile = Path.Combine(frameworkPath, "SDKManifest.xml");
@@ -3102,8 +3203,8 @@ namespace Microsoft.Build.UnitTests
             }
             finally
             {
-                Directory.Delete(frameworkPath, true /* for recursive deletion */);
-                Directory.Delete(frameworkPath2, true /* for recursive deletion */);
+                FileUtilities.DeleteWithoutTrailingBackslash(frameworkPath, true /* for recursive deletion */);
+                FileUtilities.DeleteWithoutTrailingBackslash(frameworkPath2, true /* for recursive deletion */);
             }
         }
         /// <summary>
@@ -3239,7 +3340,7 @@ namespace Microsoft.Build.UnitTests
             }
             finally
             {
-                Directory.Delete(manifestPath, true /* for recursive deletion */);
+                FileUtilities.DeleteWithoutTrailingBackslash(manifestPath, true /* for recursive deletion */);
             }
         }
 
@@ -3299,7 +3400,7 @@ namespace Microsoft.Build.UnitTests
             }
             finally
             {
-                Directory.Delete(manifestPath, true /* for recursive deletion */);
+                FileUtilities.DeleteWithoutTrailingBackslash(manifestPath, true /* for recursive deletion */);
             }
         }
 
@@ -3514,11 +3615,12 @@ namespace Microsoft.Build.UnitTests
             }
         }
 
-
+#if FEATURE_REGISTRY_SDKS
         /// <summary>
         /// Setup some fake entries in the registry and verify we get the correct sdk from there.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyGetInstalledSDKLocations3()
         {
             string testDirectoryRoot = Path.Combine(Path.GetTempPath(), "VerifyGetInstalledSDKLocations3");
@@ -3617,12 +3719,14 @@ namespace Microsoft.Build.UnitTests
                 }
             }
         }
+#endif
 
         /// <summary>
         /// Verify based on a fake directory structure with some good directories and some invalid ones at each level that we 
         /// get the expected set out.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void ResolveSDKFromDirectory()
         {
             Dictionary<string, string> extensionSDKs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -3723,7 +3827,7 @@ namespace Microsoft.Build.UnitTests
                 targetPlatforms[key].Path);
             Assert.Equal(0, targetPlatforms[key].ExtensionSDKs.Count);
             Assert.Equal(3, targetPlatforms[key].Platforms.Count);
-            Assert.True(targetPlatforms[key].ContainsPlatform("Twilight", "0.1.2.3"));
+            Assert.True(targetPlatforms[key].ContainsPlatform("PlatformAssembly", "0.1.2.3"));
             Assert.Equal(
                 Path.Combine(new[] { _fakeStructureRoot, "MyPlatform", "8.0", "Platforms", "PlatformAssembly", "0.1.2.3" })
                 + Path.DirectorySeparatorChar,
@@ -3744,11 +3848,13 @@ namespace Microsoft.Build.UnitTests
                 targetPlatforms[key].Platforms["PlatformAssembly, Version=0.1.2.3"]);
         }
 
+#if FEATURE_REGISTRY_SDKS
         /// <summary>
         /// Verify based on a fake directory structure with some good directories and some invalid ones at each level that we 
         /// get the expected set out.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-windows-failing")]
         public void ResolveSDKFromRegistry()
         {
             if (!NativeMethodsShared.IsWindows)
@@ -3841,6 +3947,8 @@ namespace Microsoft.Build.UnitTests
         /// and make sure we get the expected results.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "mono-windows-failing")]
         public void ResolveSDKFromRegistryAndDisk()
         {
             Dictionary<TargetPlatformSDK, TargetPlatformSDK> targetPlatforms = new Dictionary<TargetPlatformSDK, TargetPlatformSDK>();
@@ -3956,6 +4064,7 @@ namespace Microsoft.Build.UnitTests
                     StringComparison.OrdinalIgnoreCase));
             Assert.True(targetPlatforms[key].ExtensionSDKs.Count == 0);
         }
+#endif
 
         /// <summary>
         /// Make sure if the sdk identifier is null we get an ArgumentNullException because without specifying the
@@ -4099,10 +4208,12 @@ namespace Microsoft.Build.UnitTests
             }
         }
 
+#if FEATURE_REGISTRY_SDKS
         /// <summary>
         /// Verify that the GetPlatformSDKPropsFileLocation method can be correctly called for pre-OneCore SDKs during evaluation time as a msbuild function.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyGetPreOneCoreSDKPropsLocation()
         {
             // This is the mockup layout for SDKs before One Core SDK.
@@ -4178,6 +4289,7 @@ namespace Microsoft.Build.UnitTests
         /// Verify that the GetPlatformSDKPropsFileLocation method can be correctly called for OneCore SDK during evaluation time as a msbuild function.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyGetOneCoreSDKPropsLocation()
         {
             // This is the mockup layout for One Core SDK. 
@@ -4252,6 +4364,7 @@ namespace Microsoft.Build.UnitTests
                 }
             }
         }
+#endif
 
         /// <summary>
         /// Make a fake SDK structure on disk for testing.
@@ -4570,6 +4683,7 @@ namespace Microsoft.Build.UnitTests
 
         #region HelperMethods
 
+#if FEATURE_WIN32_REGISTRY
         /// <summary>
         /// Simplified registry access delegate. Given a baseKey and a subKey, get all of the subkey
         /// names.
@@ -4754,7 +4868,7 @@ namespace Microsoft.Build.UnitTests
 
             return null;
         }
-
+#endif
         #endregion
     }
 }

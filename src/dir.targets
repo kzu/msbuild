@@ -2,55 +2,56 @@
   <Import Project="..\dir.targets" />
 
   <PropertyGroup>
-    <CopyNuGetImplementations Condition="'$(IsTestProject)' == 'true'">true</CopyNuGetImplementations>
+    <!-- Don't copy NuGet implementations directly, since that would require setting a runtime and targeting a specific architecture.
+         Instead, it they will be deployed by DeployDependencies.proj. -->
+    <CopyNuGetImplementations>false</CopyNuGetImplementations>
   </PropertyGroup>
-  
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" Condition="'$(NetCoreBuild)' != 'true'"/>
-  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" Condition="'$(NetCoreBuild)' == 'true'"/>
 
-  <PropertyGroup Condition="'$(NetCoreBuild)' == 'true'">
-    <NuGetTargetMoniker>DNXCore,Version=v5.0</NuGetTargetMoniker>
-  </PropertyGroup>
+  <Import Project="$(CSharpTargets)" 
+          Condition="('$(NetCoreBuild)' != 'true') 
+                      and Exists('$(CSharpTargets)')"/>
+
+  <Import Project="$(CSharpPortableTargets)" 
+          Condition="'$(NetCoreBuild)' == 'true' 
+                      and Exists('$(CSharpPortableTargets)')"/>
+  
+  <!-- Fallback: If we're building Debug-NetCore with a mono host, MSBuildExtensionsPath32 resolves to a system wide Mono specific directory that does not have the portable targets. Fallback to using the BuildTools one -->
+  <Import Project="$(CSharpPortableTargetsFallback)"
+          Condition="'$(NetCoreBuild)' == 'true' 
+                      and Exists('$(CSharpPortableTargetsFallback)')
+                      and !Exists('$(CSharpPortableTargets)')"/>
+  
+  <Import Project="$(RepoRoot)\targets\OverrideGetReferenceAssemblyPaths.targets"
+          Condition="'$(NetCoreBuild)' == 'true'"/>
 
   <!-- OSS sign assemblies after compile runs. -->
-  <Import Project="$(ToolsDir)\sign.targets" />
+  <Import Condition="Exists('$(ToolsDir)\sign.targets')" Project="$(ToolsDir)\sign.targets" />
+  
+  <Import Project="$(MicroBuildDir)\MicroBuild.Core.targets" Condition="Exists('$(MicroBuildDir)\MicroBuild.Core.targets')" />
+  
+  <!-- nuget targets -->
+  <Import Condition="Exists('$(ToolsDir)\packageresolve.targets')" Project="$(ToolsDir)\packageresolve.targets" />
 
   <!-- Use NuSpec.ReferenceGenerator to create / update the .NET Core dependencies of the packages -->
-  <Import Project="$(NuSpecReferenceGeneratorDir)\NuSpec.ReferenceGenerator.targets"/>
-
-  <!-- Restore packages -->
-  <PropertyGroup>
-    <PackagesConfig Condition="Exists('$(MSBuildProjectDirectory)\packages.config')">$([System.IO.Path]::Combine($(MSBuildProjectDirectory), 'packages.config'))</PackagesConfig>
-    <RestorePackages Condition="'$(RestorePackages)' == '' and Exists('$(PackagesConfig)')">true</RestorePackages>
-    <RestorePackagesSemaphore>$(PackagesDir)$(MSBuildProjectFile).package.restored</RestorePackagesSemaphore>
-  </PropertyGroup>
-
-  <Target Name="RestorePackages"
-          Inputs="$(PackagesConfig)"
-          Outputs="$(RestorePackagesSemaphore)"
-          Condition="'$(RestorePackages)' == 'true'">
-  <!-- Restore packages -->
-  <!--
-    <Exec Command="$(NugetRestoreCommand) &quot;$(PackagesConfig)&quot;" StandardOutputImportance="Low" />
-  -->
-    <Exec Command="$(NugetRestoreCommand) &quot;$(PackagesConfig)&quot;" />
-    <Touch Files="$(RestorePackagesSemaphore)" AlwaysCreate="true" />
-  </Target>
+  <Import Condition="'$(NetCoreBuild)'=='true' and Exists('$(NuSpecReferenceGeneratorDir)\NuSpec.ReferenceGenerator.targets')"  Project="$(NuSpecReferenceGeneratorDir)\NuSpec.ReferenceGenerator.targets"/>
 
   <!-- Debugging support -->
   <PropertyGroup Condition="'$(NetCoreBuild)' == 'true'">
     <DebugEngines>{2E36F1D4-B23C-435D-AB41-18E608940038}</DebugEngines>
-    <TestHost Condition="'$(OS)' == 'Windows_NT'">CoreRun.exe</TestHost>
-    <TestHost Condition="'$(OS)' != 'Windows_NT'">corerun</TestHost>
-    <StartProgram Condition="'$(StartProgram)'==''">$(OutputPath)\$(TestHost)</StartProgram>
+    <TestHost Condition="'$(OsEnvironment)' == 'Windows_NT'">CoreRun.exe</TestHost>
+    <TestHost Condition="'$(OsEnvironment)' != 'Windows_NT'">corerun</TestHost>
+    <StartProgram Condition="'$(StartProgram)'==''">$(DeploymentDir)\$(TestHost)</StartProgram>
     <StartArguments>msbuild.exe</StartArguments>
   </PropertyGroup>
 
 
   <PropertyGroup Condition="'$(NetCoreBuild)' == 'true' And '$(IsTestProject)'=='true'">
-    <StartArguments>xunit.console.netcore.exe $(TargetFileName)</StartArguments>
+    <StartArguments>xunit.console.netcore.exe $(TargetFileName) $(XunitOptions)</StartArguments>
     <StartAction>Program</StartAction>
   </PropertyGroup>
-  
-  
+
+  <PropertyGroup Condition="'$(NetCoreBuild)' == 'true'">
+    <NuGetTargetMoniker>.NETStandard,Version=v1.3</NuGetTargetMoniker>
+  </PropertyGroup>
+
 </Project>

@@ -1,41 +1,42 @@
 ﻿{
   "dependencies": {
-    "xunit": "2.1.0-rc1-build3168"
-  },
-  "runtimes": {
-    "win7-x86": { }
+    "System.Threading.Tasks.Dataflow": "4.5.26-rc3-23908",
+    "xunit": "2.1.0",
+    "xunit.netcore.extensions": "1.0.0-prerelease-00116",
+    "xunit.core": "2.1.0",
+    "xunit.extensibility.core": "2.1.0",
+    "xunit.assert": "2.1.0"
   },
   "frameworks": {
     "net451": {
-      "dependencies": {
-        "Microsoft.Tpl.Dataflow": "4.5.24",
-        "xunit.runner.visualstudio": "2.1.0-rc1-build1124"
-      }
+      "dependencies": {}
     },
     "net46": {
-      "dependencies": {
-        "Microsoft.Tpl.Dataflow": "4.5.24",
-        "System.Runtime.InteropServices.RuntimeInformation": "4.0.0-beta-23213",
-        "xunit.runner.visualstudio": "2.1.0-rc1-build1124"
-      }
+      "dependencies": {}
     },
-    "dnxcore50": {
+    "netstandard1.3": {
       "dependencies": {
-        "Microsoft.NETCore": "5.0.0",
-        "Microsoft.NETCore.Portable.Compatibility": "1.0.0",
-        "System.Console": "4.0.0-beta-23123",
-        "System.Diagnostics.Contracts": "4.0.0",
-        "System.Diagnostics.FileVersionInfo": "4.0.0-beta-23123",
-        "System.Diagnostics.Process": "4.0.0-beta-23123",
-        "System.Diagnostics.TraceSource": "4.0.0-beta-23019",
-        "System.Runtime.InteropServices.RuntimeInformation": "4.0.0-beta-23213",
-        "System.Xml.XmlDocument": "4.0.0",
-        "System.Xml.ReaderWriter": "4.0.10",
-        "Microsoft.NETCore.Runtime": "1.0.0",
-        "Microsoft.NETCore.TestHost-x86": "1.0.0-beta-23123",
-        "Microsoft.Win32.Registry": "4.0.0-beta-23127"
+        "System.Net.NetworkInformation": "4.1.0-rc3-23908",
+        "Microsoft.NETCore": "5.0.1-rc3-23908",
+        "Microsoft.NETCore.Portable.Compatibility": "1.0.1-rc3-23908",
+        "System.Collections.NonGeneric": "4.0.1-rc3-23908",
+        "System.Console": "4.0.0-rc3-23908",
+        "System.Diagnostics.Contracts": "4.0.1-rc3-23908",
+        "System.Diagnostics.FileVersionInfo": "4.0.0-rc3-23908",
+        "System.Diagnostics.Process": "4.1.0-rc3-23908",
+        "System.Diagnostics.TraceSource": "4.0.0-rc3-23908",
+        "System.Threading.Thread": "4.0.0-rc3-23908",
+        "System.Threading.ThreadPool": "4.0.10-rc3-23908",
+        "System.Xml.XmlDocument": "4.0.1-rc3-23908",
+        "System.Xml.XPath.XmlDocument": "4.0.1-rc3-23908",
+        "Microsoft.Win32.Primitives":  "4.0.1-rc3-23908",
+        "Microsoft.Net.Compilers.Targets.NetCore": "0.1.4-dev",
+        "Microsoft.NETCore.Runtime": "1.0.1-rc3-23908",
+        "Microsoft.NETCore.TestHost": "1.0.0-rc3-23908",
+        "System.Reflection.Metadata": "1.1.0",
+        "xunit.netcore.extensions": "1.0.0-prerelease-00116"
       },
-      "imports": "portable-net451+win81"
+      "imports": [ "portable-net451+win81", "dnxcore50" ]
     }
   }
 }

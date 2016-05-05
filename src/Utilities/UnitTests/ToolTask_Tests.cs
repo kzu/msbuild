@@ -31,7 +31,7 @@ namespace Microsoft.Build.UnitTests
 #else
                     FileUtilities.GetFolderPath(FileUtilities.SpecialFolder.System),
 #endif
-                    NativeMethodsShared.IsUnixLike ? "/bin/sh" : "cmd.exe");
+                    NativeMethodsShared.IsUnixLike ? "sh" : "cmd.exe");
             }
 
             public void Dispose()
@@ -120,6 +120,11 @@ namespace Microsoft.Build.UnitTests
                 Console.WriteLine("executetool");
                 _pathToToolUsed = pathToTool;
                 ExecuteCalled = true;
+                if (!NativeMethodsShared.IsWindows && string.IsNullOrEmpty(responseFileCommands) && string.IsNullOrEmpty(commandLineCommands))
+                {
+                    // Unix makes sh interactive and it won't exit if there is nothing on the command line
+                    commandLineCommands = "echo";
+                }
                 int result = base.ExecuteTool(pathToTool, responseFileCommands, commandLineCommands);
                 StartInfo = base.GetProcessStartInfo(
                     GenerateFullPathToTool(),
@@ -136,7 +141,7 @@ namespace Microsoft.Build.UnitTests
             {
                 MockEngine engine = new MockEngine();
                 t.BuildEngine = engine;
-                t.ToolPath = @"C:\MyAlternatePath";
+                t.ToolPath = NativeMethodsShared.IsWindows ? @"C:\MyAlternatePath" : "/MyAlternatePath";
 
                 t.Execute();
 
@@ -152,7 +157,7 @@ namespace Microsoft.Build.UnitTests
             {
                 MockEngine engine = new MockEngine();
                 t.BuildEngine = engine;
-                t.ToolPath = @"C:\MyAlternatePath";
+                t.ToolPath = NativeMethodsShared.IsWindows ? @"C:\MyAlternatePath" : "/MyAlternatePath";
 
                 Assert.False(t.Execute());
 
@@ -172,11 +177,10 @@ namespace Microsoft.Build.UnitTests
                 // "cmd.exe" croaks big-time when given a very long command-line.  It pops up a message box on
                 // Windows XP.  We can't have that!  So use "attrib.exe" for this exercise instead.
 #if FEATURE_SPECIAL_FOLDERS
-                t.FullToolName = NativeMethodsShared.IsWindows ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "attrib.exe") :
+                t.FullToolName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), NativeMethodsShared.IsWindows ? "attrib.exe" : "ps");
 #else
-                t.FullToolName = NativeMethodsShared.IsWindows ? Path.Combine(FileUtilities.GetFolderPath(FileUtilities.SpecialFolder.System), "attrib.exe") :
+                t.FullToolName = Path.Combine(FileUtilities.GetFolderPath(FileUtilities.SpecialFolder.System), NativeMethodsShared.IsWindows ? "attrib.exe" : "ps");
 #endif
-                    "/bin/ps";
 
                 t.MockCommandLineCommands = new String('x', 32001);
 
@@ -192,13 +196,14 @@ namespace Microsoft.Build.UnitTests
         /// Exercise the code in ToolTask's default implementation of HandleExecutionErrors.
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void HandleExecutionErrorsWhenToolDoesntLogError()
         {
             using (MyTool t = new MyTool())
             {
                 MockEngine engine = new MockEngine();
                 t.BuildEngine = engine;
-                t.MockCommandLineCommands = "/C garbagegarbagegarbagegarbage.exe";
+                t.MockCommandLineCommands = NativeMethodsShared.IsWindows ? "/C garbagegarbagegarbagegarbage.exe" : "-c garbagegarbagegarbagegarbage.exe";
 
                 Assert.False(t.Execute());
                 Assert.Equal(NativeMethodsShared.IsWindows ? 1 : 127, t.ExitCode); // cmd.exe error code is 1, sh error code is 127
@@ -215,6 +220,8 @@ namespace Microsoft.Build.UnitTests
         /// Exercise the code in ToolTask's default implementation of HandleExecutionErrors.
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void HandleExecutionErrorsWhenToolLogsError()
         {
             using (MyTool t = new MyTool())
@@ -223,7 +230,7 @@ namespace Microsoft.Build.UnitTests
                 t.BuildEngine = engine;
                 t.MockCommandLineCommands = NativeMethodsShared.IsWindows
                                                 ? "/C echo Main.cs(17,20): error CS0168: The variable 'foo' is declared but never used"
-                    : @"-c ""echo \""Main.cs(17,20): error CS0168: The variable 'foo' is declared but never used\""""";
+                                                : @"-c """"""echo Main.cs\(17,20\): error CS0168: The variable 'foo' is declared but never used""""""";
 
                 Assert.False(t.Execute());
 
@@ -250,7 +257,7 @@ namespace Microsoft.Build.UnitTests
             // Unmatched curly would crash if they did
             t.MockCommandLineCommands = NativeMethodsShared.IsWindows
                                             ? "/C echo hello world {"
-                                            : "-c echo hello world {";
+                                            : @"-c """"""echo hello world {""""""";
             t.Execute();
             engine.AssertLogContains("echo hello world {");
             Assert.Equal(0, engine.Errors);
@@ -268,7 +275,7 @@ namespace Microsoft.Build.UnitTests
                 t.BuildEngine = engine;
                 t.MockCommandLineCommands = NativeMethodsShared.IsWindows
                                                 ? "/C Echo 'Who made you king anyways' 1>&2"
-                                                : "-c \"echo 'Who made you king anyways' 1>&2\"";
+                                                : @"-c """"""echo Who made you king anyways 1>&2""""""";
 
                 Assert.True(t.Execute());
 
@@ -292,7 +299,7 @@ namespace Microsoft.Build.UnitTests
                 t.LogStandardErrorAsError = true;
                 t.MockCommandLineCommands = NativeMethodsShared.IsWindows
                                                 ? "/C Echo 'Who made you king anyways'"
-                                                : "-c 'echo Who made you king anyways'";
+                                                : @"-c """"""echo Who made you king anyways""""""";
 
                 Assert.True(t.Execute());
 
@@ -316,7 +323,7 @@ namespace Microsoft.Build.UnitTests
                 t.LogStandardErrorAsError = true;
                 t.MockCommandLineCommands = NativeMethodsShared.IsWindows
                                                 ? "/C Echo 'Who made you king anyways' 1>&2"
-                                                : "-c \"echo 'Who made you king anyways' 1>&2\"";
+                                                : @"-c """"""echo 'Who made you king anyways' 1>&2""""""";
 
                 Assert.False(t.Execute());
 
@@ -351,13 +358,16 @@ namespace Microsoft.Build.UnitTests
         /// of the regular tool name
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void ToolExeIsFoundOnToolPath()
         {
+            string shellName = NativeMethodsShared.IsWindows ? "cmd.exe" : "sh";
+            string copyName = NativeMethodsShared.IsWindows ? "xcopy.exe" : "cp";
             using (MyTool t = new MyTool())
             {
                 MockEngine engine = new MockEngine();
                 t.BuildEngine = engine;
-                t.FullToolName = "cmd.exe";
+                t.FullToolName = shellName;
 #if FEATURE_SPECIAL_FOLDERS
                 string systemPath = Environment.GetFolderPath(Environment.SpecialFolder.System);
 #else
@@ -366,15 +376,15 @@ namespace Microsoft.Build.UnitTests
                 t.ToolPath = systemPath;
 
                 t.Execute();
-                Assert.Equal(Path.Combine(systemPath, "cmd.exe"), t.PathToToolUsed);
-                engine.AssertLogContains("cmd.exe");
+                Assert.Equal(Path.Combine(systemPath, shellName), t.PathToToolUsed);
+                engine.AssertLogContains(shellName);
                 engine.Log = String.Empty;
 
-                t.ToolExe = "xcopy.exe";
+                t.ToolExe = copyName;
                 t.Execute();
-                Assert.Equal(Path.Combine(systemPath, "xcopy.exe"), t.PathToToolUsed);
-                engine.AssertLogContains("xcopy.exe");
-                engine.AssertLogDoesntContain("cmd.exe");
+                Assert.Equal(Path.Combine(systemPath, copyName), t.PathToToolUsed);
+                engine.AssertLogContains(copyName);
+                engine.AssertLogDoesntContain(shellName);
             }
         }
 
@@ -402,13 +412,14 @@ namespace Microsoft.Build.UnitTests
         /// Task is found on path.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void TaskFoundOnPath()
         {
             using (MyTool t = new MyTool())
             {
                 MockEngine engine = new MockEngine();
                 t.BuildEngine = engine;
-                string toolName = NativeMethodsShared.IsWindows ? "cmd.exe" : "/bin/sh";
+                string toolName = NativeMethodsShared.IsWindows ? "cmd.exe" : "sh";
                 t.FullToolName = toolName;
 
                 Assert.True(t.Execute());
@@ -425,7 +436,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// StandardOutputImportance set to Low should now show up in our log
+        /// StandardOutputImportance set to Low should not show up in our log
         /// </summary>
         [Fact]
         public void OverrideStdOutImportanceToLow()
@@ -439,7 +450,7 @@ namespace Microsoft.Build.UnitTests
                 engine.MinimumMessageImportance = MessageImportance.High;
 
                 t.BuildEngine = engine;
-                t.FullToolName = NativeMethodsShared.IsWindows ? "find.exe" : "grep";
+                t.FullToolName = NativeMethodsShared.IsWindows ? "findstr.exe" : "grep";
                 t.MockCommandLineCommands = "\"hello\" \"" + tempFile + "\"";
                 t.StandardOutputImportance = "Low";
 
@@ -453,7 +464,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// StandardOutputImportance set to Low should now show up in our log
+        /// StandardOutputImportance set to High should show up in our log
         /// </summary>
         [Fact]
         public void OverrideStdOutImportanceToHigh()
@@ -467,7 +478,7 @@ namespace Microsoft.Build.UnitTests
                 engine.MinimumMessageImportance = MessageImportance.High;
 
                 t.BuildEngine = engine;
-                t.FullToolName = NativeMethodsShared.IsWindows ? "find.exe" : "grep";
+                t.FullToolName = NativeMethodsShared.IsWindows ? "findstr.exe" : "grep";
                 t.MockCommandLineCommands = "\"hello\" \"" + tempFile + "\"";
                 t.StandardOutputImportance = "High";
 
@@ -503,7 +514,7 @@ namespace Microsoft.Build.UnitTests
                 // file we created above.
                 t.MockCommandLineCommands = NativeMethodsShared.IsWindows
                                                 ? ("/C type \"" + tempFile + "\"")
-                                                : ("-c 'cat \"" + tempFile + "\"'");
+                                                : (@"-c """"""cat '" + tempFile + @"'""""""");
 
                 t.Execute();
 
@@ -524,6 +535,7 @@ namespace Microsoft.Build.UnitTests
         /// Passing env vars through the tooltask public property
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void EnvironmentVariablesToToolTask()
         {
             MyTool task = new MyTool();
@@ -548,21 +560,21 @@ namespace Microsoft.Build.UnitTests
             Assert.Equal("x", startInfo.EnvironmentVariables[userVarName]);
             Assert.Equal(String.Empty, startInfo.EnvironmentVariables["path"]);
 #endif
+
             if (NativeMethodsShared.IsWindows)
             {
-                Assert.True(
-                    String.Equals(
+                Assert.Equal(
 #if FEATURE_SPECIAL_FOLDERS
                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
 #else
-                        FileUtilities.GetFolderPath(FileUtilities.SpecialFolder.System),
+                        FileUtilities.GetFolderPath(FileUtilities.SpecialFolder.ProgramFiles),
 #endif
 #if FEATURE_PROCESSSTARTINFO_ENVIRONMENT
                         startInfo.Environment["programfiles"],
 #else
                         startInfo.EnvironmentVariables["programfiles"],
 #endif
-                        StringComparison.OrdinalIgnoreCase));
+                        true);
             }
         }
 
@@ -570,6 +582,7 @@ namespace Microsoft.Build.UnitTests
         /// Equals sign in value
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void EnvironmentVariablesToToolTaskEqualsSign()
         {
             MyTool task = new MyTool();
@@ -634,6 +647,8 @@ namespace Microsoft.Build.UnitTests
         /// Not set should not wipe out other env vars
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void EnvironmentVariablesToToolTaskNotSet()
         {
             MyTool task = new MyTool();

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#if FEATURE_APPDOMAIN
+
 using System;
 using System.Collections;
 using System.Runtime.InteropServices;
@@ -462,6 +464,7 @@ namespace Microsoft.Build.UnitTests
         /// Test if assemblies located in the gac get their CopyLocal attribute set to False
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void CheckSetCopyLocalToFalseOnEmbedInteropTypesAssemblies()
         {
             string gacPath = @"C:\windows\gac";
@@ -550,6 +553,7 @@ namespace Microsoft.Build.UnitTests
         /// Test if assemblies located in the gac get their CopyLocal attribute set to False
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void CheckSetCopyLocalToFalseOnGacAssemblies()
         {
             string gacPath = @"C:\windows\gac";
@@ -807,3 +811,4 @@ namespace Microsoft.Build.UnitTests
     }
 }
 
+#endif

@@ -492,6 +492,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.True(_taskHost.IsRunningMultipleNodes); // "Expect IsRunningMultipleNodes to be true with 4 nodes"
         }
 
+#if FEATURE_CODETASKFACTORY
         /// <summary>
         /// Task logging after it's done should not crash us.
         /// </summary>
@@ -635,6 +636,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             mockLogger.AssertLogContains("[1]");
             mockLogger.AssertLogContains("[3]"); // [2] may or may not appear.
         }
+#endif
 
         #region Helper Classes
 
@@ -819,12 +821,16 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// </summary>
         internal class MyCustomBuildEventArgsNotSerializable : CustomBuildEventArgs
         {
+            //  If binary serialization is not available, then we use a simple serializer which relies on a default constructor.  So to test
+            //  what happens for an event that's not serializable, don't include a default constructor.
+#if FEATURE_BINARY_SERIALIZATION
             /// <summary>
             /// Default constructor
             /// </summary>
             public MyCustomBuildEventArgsNotSerializable() : base()
             {
             }
+#endif
 
             /// <summary>
             /// Constructor which takes a message

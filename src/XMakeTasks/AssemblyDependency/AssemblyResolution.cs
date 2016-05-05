@@ -127,9 +127,11 @@ namespace Microsoft.Build.Tasks
             string[] frameworkPaths,
             FileExists fileExists,
             GetAssemblyName getAssemblyName,
+#if FEATURE_WIN32_REGISTRY
             GetRegistrySubKeyNames getRegistrySubKeyNames,
             GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue,
             OpenBaseKey openBaseKey,
+#endif
             InstalledAssemblies installedAssemblies,
             GetAssemblyRuntimeVersion getRuntimeVersion,
             Version targetedRuntimeVersion,
@@ -160,19 +162,23 @@ namespace Microsoft.Build.Tasks
                 {
                     resolvers[p] = new CandidateAssemblyFilesResolver(candidateAssemblyFiles, searchPaths[p], getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVersion);
                 }
+#if FEATURE_GAC
                 else if (0 == String.Compare(basePath, AssemblyResolutionConstants.gacSentinel, StringComparison.OrdinalIgnoreCase))
                 {
                     resolvers[p] = new GacResolver(targetProcessorArchitecture, searchPaths[p], getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVersion, getAssemblyPathInGac);
                 }
+#endif
                 else if (0 == String.Compare(basePath, AssemblyResolutionConstants.assemblyFoldersSentinel, StringComparison.OrdinalIgnoreCase))
                 {
                     resolvers[p] = new AssemblyFoldersResolver(searchPaths[p], getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVersion);
                 }
+#if FEATURE_WIN32_REGISTRY
                 // Check for AssemblyFoldersEx sentinel.
                 else if (0 == String.Compare(basePath, 0, AssemblyResolutionConstants.assemblyFoldersExSentinel, 0, AssemblyResolutionConstants.assemblyFoldersExSentinel.Length, StringComparison.OrdinalIgnoreCase))
                 {
                     resolvers[p] = new AssemblyFoldersExResolver(searchPaths[p], getAssemblyName, fileExists, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, getRuntimeVersion, openBaseKey, targetedRuntimeVersion, targetProcessorArchitecture, true, buildEngine);
                 }
+#endif
                 else
                 {
                     resolvers[p] = new DirectoryResolver(searchPaths[p], getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVersion);

@@ -54,12 +54,8 @@ namespace Microsoft.Build.Shared
         /// </summary>
         private static void GetTestExecutionInfo()
         {
-#if FEATURE_GET_COMMANDLINE
             // Get the executable we are running
             var program = Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]);
-#else
-            var program = Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().MainModule.FileName);
-#endif
 
             // Check if it matches the pattern
             s_runningTests = program != null
@@ -465,17 +461,6 @@ namespace Microsoft.Build.Shared
                 }
             }
 
-            // See if we have a framework path and adjust it if needed
-            if (checkValue.StartsWith("/"))
-            {
-                var adjustedValue = NativeMethodsShared.FixFrameworkPath(checkValue);
-
-                if (adjustedValue != null)
-                {
-                    return quote + adjustedValue + quote;
-                }
-            }
-
             return LooksLikeUnixFilePath(checkValue) ? newValue : value;
         }
 
@@ -486,7 +471,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static bool LooksLikeUnixFilePath(string value)
         {
-            if (!NativeMethodsShared.IsUnix)
+            if (!NativeMethodsShared.IsUnixLike)
             {
                 return false;
             }
@@ -566,10 +551,9 @@ namespace Microsoft.Build.Shared
         {
             get
             {
-#if FEATURE_ASSEMBLY_LOCATION
                 try
                 {
-                    return Path.GetFullPath(new Uri(typeof(FileUtilities).GetTypeInfo().Assembly.EscapedCodeBase).LocalPath);
+                    return Path.GetFullPath(typeof(FileUtilities).GetTypeInfo().Assembly.Location);
                 }
                 catch (InvalidOperationException e)
                 {
@@ -578,26 +562,6 @@ namespace Microsoft.Build.Shared
                     ExceptionHandling.DumpExceptionToFile(e);
                     return typeof(FileUtilities).GetTypeInfo().Assembly.Location;
                 }
-#else
-                //  If we can't get the path to an assembly (ie on .NET Core), then assume that this assembly has been
-                //  loaded from the same directory as the main application
-                var appPath = Process.GetCurrentProcess().MainModule.FileName;
-                var appDirectory = Path.GetDirectoryName(appPath);
-
-                string extension = ".dll";
-                string assemblySimpleName = typeof(FileUtilities).GetTypeInfo().Assembly.GetName().Name;
-                if (assemblySimpleName.Equals("msbuild", StringComparison.OrdinalIgnoreCase))
-                {
-                    extension = ".exe";
-                }
-                var assemblyPath = Path.Combine(appDirectory, assemblySimpleName + extension);
-                assemblyPath = Path.GetFullPath(assemblyPath);
-                if (!File.Exists(assemblyPath))
-                {
-                    throw new FileNotFoundException(assemblyPath);
-                }
-                return assemblyPath;
-#endif
             }
         }
 
@@ -806,6 +770,18 @@ namespace Microsoft.Build.Shared
                     Thread.Sleep(retryTimeOut);
                 }
             }
+        }
+
+        /// <summary>
+        /// Deletes a directory, ensuring that Directory.Delete does not get a path ending in a slash.
+        /// </summary>
+        /// <remarks>
+        /// This is a workaround for https://github.com/dotnet/corefx/issues/3780, which clashed with a common
+        /// pattern in our tests.
+        /// </remarks>
+        internal static void DeleteWithoutTrailingBackslash(string path, bool recursive = false)
+        {
+            Directory.Delete(EnsureNoTrailingSlash(path), recursive);
         }
 
         /// <summary>
@@ -1125,7 +1101,7 @@ namespace Microsoft.Build.Shared
             }
         }
 
-        internal static StreamReader OpenRead(string path, Encoding encoding = null)
+        internal static StreamReader OpenRead(string path, Encoding encoding = null, bool detectEncodingFromByteOrderMarks = true)
         {
             const int DefaultFileStreamBufferSize = 4096;
             Stream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultFileStreamBufferSize, FileOptions.SequentialScan);
@@ -1135,7 +1111,7 @@ namespace Microsoft.Build.Shared
             }
             else
             {
-                return new StreamReader(fileStream, encoding);
+                return new StreamReader(fileStream, encoding, detectEncodingFromByteOrderMarks);
             }
         }
     }

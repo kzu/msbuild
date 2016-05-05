@@ -1,14 +1,13 @@
 ﻿{
-  "runtimes": {
-    "win7-x86": { }
-  },
   "frameworks": {
     "net451": { },
     "net46": { },
-    "dnxcore50": {
+    "netstandard1.3": {
       "dependencies": {
-        "Microsoft.NETCore": "5.0.0",
-        "Microsoft.NETCore.Portable.Compatibility": "1.0.0"
+        "System.Net.NetworkInformation": "4.1.0-rc3-23908",
+        "Microsoft.NETCore": "5.0.1-rc3-23908",
+        "Microsoft.NETCore.Portable.Compatibility": "1.0.1-rc3-23908",
+        "Microsoft.NETCore.Runtime": "1.0.1-rc3-23908"
       }
     }
   }

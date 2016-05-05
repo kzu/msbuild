@@ -6,18 +6,8 @@
 @echo off
 setlocal
 
-set MSBuildTempPath=%~dp0bin\MSBuild
+set MSBUILD_CUSTOM_PATH=%~dp0Tools\MSBuild.exe
+set RUNTIME_HOST=%~dp0Tools\CoreRun.exe
 
-:: Check prerequisites
-if not defined VS140COMNTOOLS (
-    echo Error: This script should be run from a Visual Studio 2015 Command Prompt.  
-    echo        Please see https://github.com/Microsoft/msbuild/wiki/Developer-Guide for build instructions.
-    exit /b 1
-)
-
-:: Build and copy output to bin\bootstrap
-call "%~dp0BuildAndCopy.cmd"
-
-:: Rebuild with bootstrapped msbuild
-set MSBUILDCUSTOMPATH="%~dp0\bin\Bootstrap\14.1\Bin\MSBuild.exe"
-"%~dp0build.cmd" /t:RebuildAndTest /p:BootstrappedMSBuild=true
+:: Build and run tests on CoreCLR
+"%~dp0build.cmd" /t:RebuildAndTest /p:Configuration=Debug-NetCore

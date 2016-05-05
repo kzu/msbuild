@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //-----------------------------------------------------------------------
-// </copyright>
-// <summary>Object which reads toolset information from the registry.</summary>
+// Object which reads toolset information from the registry.
 //-----------------------------------------------------------------------
+#if FEATURE_WIN32_REGISTRY
 
 using Microsoft.Win32;
 using System;
@@ -290,6 +290,14 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
+        /// Returns a map of MSBuildExtensionsPath* property names/kind to list of search paths
+        /// </summary>
+        protected override Dictionary<MSBuildExtensionsPathReferenceKind, IList<string>> GetMSBuildExtensionPathsSearchPathsTable(string toolsVersion, string os)
+        {
+            return new Dictionary<MSBuildExtensionsPathReferenceKind, IList<string>>();
+        }
+
+        /// <summary>
         /// Given a registry location containing a property name and value, create the ToolsetPropertyDefinition that maps to it
         /// </summary>
         /// <param name="toolsetWrapper">Wrapper for the key that we're getting values from</param>
@@ -352,3 +360,4 @@ namespace Microsoft.Build.Evaluation
         }
     }
 }
+#endif

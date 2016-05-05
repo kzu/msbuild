@@ -9,6 +9,9 @@ using System.Globalization;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.IO;
+using System.Reflection.PortableExecutable;
+using System.Reflection.Metadata;
 
 namespace Microsoft.Build.Shared
 {
@@ -52,16 +55,16 @@ namespace Microsoft.Build.Shared
     [Serializable]
     sealed internal class AssemblyNameExtension
     {
-        private AssemblyName _asAssemblyName = null;
-        private string _asString = null;
-        private bool _isSimpleName = false;
-        private bool _hasProcessorArchitectureInFusionName;
-        private bool _immutable;
+        private AssemblyName asAssemblyName = null;
+        private string asString = null;
+        private bool isSimpleName = false;
+        private bool hasProcessorArchitectureInFusionName;
+        private bool immutable;
 
         /// <summary>
         /// Set of assemblyNameExtensions that THIS assemblyname was remapped from.
         /// </summary>
-        private HashSet<AssemblyNameExtension> _remappedFrom;
+        private HashSet<AssemblyNameExtension> remappedFrom;
 
         static private AssemblyNameExtension s_unnamedAssembly = new AssemblyNameExtension();
 
@@ -80,7 +83,7 @@ namespace Microsoft.Build.Shared
         /// <param name="assemblyName"></param>
         internal AssemblyNameExtension(AssemblyName assemblyName) : this()
         {
-            _asAssemblyName = assemblyName;
+            asAssemblyName = assemblyName;
         }
 
         /// <summary>
@@ -89,7 +92,7 @@ namespace Microsoft.Build.Shared
         /// <param name="assemblyName"></param>
         internal AssemblyNameExtension(string assemblyName) : this()
         {
-            _asString = assemblyName;
+            asString = assemblyName;
         }
 
         /// <summary>
@@ -106,7 +109,7 @@ namespace Microsoft.Build.Shared
         /// </param>
         internal AssemblyNameExtension(string assemblyName, bool validate) : this()
         {
-            _asString = assemblyName;
+            asString = assemblyName;
 
             if (validate)
             {
@@ -115,7 +118,6 @@ namespace Microsoft.Build.Shared
             }
         }
 
-#if FEATURE_ASSEMBLY_LOADFROM
         /// <summary>
         /// To be used as a delegate. Gets the AssemblyName of the given file.
         /// </summary>
@@ -124,7 +126,7 @@ namespace Microsoft.Build.Shared
         internal static AssemblyNameExtension GetAssemblyNameEx(string path)
         {
             AssemblyName assemblyName = null;
-
+#if FEATURE_ASSEMBLY_LOADFROM
             try
             {
                 assemblyName = AssemblyName.GetAssemblyName(path);
@@ -141,14 +143,28 @@ namespace Microsoft.Build.Shared
             {
                 // Its pretty hard to get here, also since we do a file existence check right before calling this method so it can only happen if the file got deleted between that check and this call.
             }
+#else
+            using (var stream = File.OpenRead(path))
+            using (var peFile = new PEReader(stream))
+            {
+                var metadataReader = peFile.GetMetadataReader();
+                
+                var entry = metadataReader.GetAssemblyDefinition();
 
+                assemblyName = new AssemblyName();
+                assemblyName.Name = metadataReader.GetString(entry.Name);
+                assemblyName.Version = entry.Version;
+                assemblyName.CultureName = metadataReader.GetString(entry.Culture);
+                assemblyName.SetPublicKey(metadataReader.GetBlobBytes(entry.PublicKey));
+                assemblyName.Flags = (AssemblyNameFlags)(int)entry.Flags;
+            }
+#endif
             if (assemblyName == null)
             {
                 return null;
             }
             return new AssemblyNameExtension(assemblyName);
         }
-#endif
 
 #if FEATURE_BINARY_SERIALIZATION
         /// <summary>
@@ -166,9 +182,9 @@ namespace Microsoft.Build.Shared
         /// </summary>
         private void InitializeRemappedFrom()
         {
-            if (_remappedFrom == null)
+            if (remappedFrom == null)
             {
-                _remappedFrom = new HashSet<AssemblyNameExtension>(AssemblyNameComparer.GenericComparerConsiderRetargetable);
+                remappedFrom = new HashSet<AssemblyNameExtension>(AssemblyNameComparer.GenericComparerConsiderRetargetable);
             }
         }
 
@@ -177,14 +193,14 @@ namespace Microsoft.Build.Shared
         /// </summary>
         private void CreateAssemblyName()
         {
-            if (_asAssemblyName == null)
+            if (asAssemblyName == null)
             {
-                _asAssemblyName = GetAssemblyNameFromDisplayName(_asString);
+                asAssemblyName = GetAssemblyNameFromDisplayName(asString);
 
-                if (_asAssemblyName != null)
+                if (asAssemblyName != null)
                 {
-                    _hasProcessorArchitectureInFusionName = _asString.IndexOf("ProcessorArchitecture", StringComparison.OrdinalIgnoreCase) != -1;
-                    _isSimpleName = ((Version == null) && (CultureInfo == null) && (GetPublicKeyToken() == null) && (!_hasProcessorArchitectureInFusionName));
+                    hasProcessorArchitectureInFusionName = asString.IndexOf("ProcessorArchitecture", StringComparison.OrdinalIgnoreCase) != -1;
+                    isSimpleName = ((Version == null) && (CultureInfo == null) && (GetPublicKeyToken() == null) && (!hasProcessorArchitectureInFusionName));
                 }
             }
         }
@@ -194,9 +210,9 @@ namespace Microsoft.Build.Shared
         /// </summary>
         private void CreateFullName()
         {
-            if (_asString == null)
+            if (asString == null)
             {
-                _asString = _asAssemblyName.FullName;
+                asString = asAssemblyName.FullName;
             }
         }
 
@@ -210,7 +226,7 @@ namespace Microsoft.Build.Shared
             {
                 // Is there a string?
                 CreateAssemblyName();
-                return _asAssemblyName.Name;
+                return asAssemblyName.Name;
             }
         }
 
@@ -221,9 +237,9 @@ namespace Microsoft.Build.Shared
         {
             get
             {
-                if (_asAssemblyName != null)
+                if (asAssemblyName != null)
                 {
-                    return _asAssemblyName.ProcessorArchitecture;
+                    return asAssemblyName.ProcessorArchitecture;
                 }
                 else
                 {
@@ -242,7 +258,7 @@ namespace Microsoft.Build.Shared
             {
                 // Is there a string?
                 CreateAssemblyName();
-                return _asAssemblyName.Version;
+                return asAssemblyName.Version;
             }
         }
 
@@ -255,7 +271,7 @@ namespace Microsoft.Build.Shared
             get
             {
                 CreateAssemblyName();
-                return _isSimpleName;
+                return isSimpleName;
             }
         }
 
@@ -267,7 +283,7 @@ namespace Microsoft.Build.Shared
             get
             {
                 CreateAssemblyName();
-                return _hasProcessorArchitectureInFusionName;
+                return hasProcessorArchitectureInFusionName;
             }
         }
 
@@ -277,14 +293,14 @@ namespace Microsoft.Build.Shared
         /// <param name="version"></param>
         internal void ReplaceVersion(Version version)
         {
-            ErrorUtilities.VerifyThrow(!_immutable, "Object is immutable cannot replace the version");
+            ErrorUtilities.VerifyThrow(!immutable, "Object is immutable cannot replace the version");
             CreateAssemblyName();
-            if (_asAssemblyName.Version != version)
+            if (asAssemblyName.Version != version)
             {
-                _asAssemblyName.Version = version;
+                asAssemblyName.Version = version;
 
                 // String would now be invalid.
-                _asString = null;
+                asString = null;
             }
         }
 
@@ -299,13 +315,13 @@ namespace Microsoft.Build.Shared
                 // Is there a string?
                 CreateAssemblyName();
 #if FEATURE_ASSEMBLYNAME_CULTUREINFO
-                return _asAssemblyName.CultureInfo;
+                return asAssemblyName.CultureInfo;
 #else
-                if (_asAssemblyName.CultureName == null)
+                if (asAssemblyName.CultureName == null)
                 {
                     return null;
                 }
-                return new CultureInfo(_asAssemblyName.CultureName);
+                return new CultureInfo(asAssemblyName.CultureName);
 #endif
             }
         }
@@ -321,7 +337,7 @@ namespace Microsoft.Build.Shared
                 // Is there a string?
                 CreateAssemblyName();
                 // Cannot use the HasFlag method on the Flags enum because this class needs to work with 3.5
-                return ((_asAssemblyName.Flags & AssemblyNameFlags.Retargetable) == AssemblyNameFlags.Retargetable);
+                return ((asAssemblyName.Flags & AssemblyNameFlags.Retargetable) == AssemblyNameFlags.Retargetable);
             }
         }
 
@@ -333,7 +349,7 @@ namespace Microsoft.Build.Shared
             get
             {
                 InitializeRemappedFrom();
-                return _remappedFrom;
+                return remappedFrom;
             }
         }
 
@@ -344,7 +360,7 @@ namespace Microsoft.Build.Shared
         {
             ErrorUtilities.VerifyThrow(extensionToAdd.Immutable, "ExtensionToAdd is not immutable");
             InitializeRemappedFrom();
-            _remappedFrom.Add(extensionToAdd);
+            remappedFrom.Add(extensionToAdd);
         }
 
         /// <summary>
@@ -357,7 +373,7 @@ namespace Microsoft.Build.Shared
             {
                 // Is there a string?
                 CreateAssemblyName();
-                return _asAssemblyName;
+                return asAssemblyName;
             }
         }
 
@@ -371,7 +387,7 @@ namespace Microsoft.Build.Shared
             {
                 // Is there a string?
                 CreateFullName();
-                return _asString;
+                return asString;
             }
         }
 
@@ -383,7 +399,7 @@ namespace Microsoft.Build.Shared
         {
             // Is there a string?
             CreateAssemblyName();
-            return _asAssemblyName.GetPublicKeyToken();
+            return asAssemblyName.GetPublicKeyToken();
         }
 
 
@@ -472,15 +488,15 @@ namespace Microsoft.Build.Shared
             int result = CompareBaseNameToImpl(that);
 #if DEBUG
             // Now, compare to the real value to make sure the result was accurate.
-            AssemblyName a1 = _asAssemblyName;
-            AssemblyName a2 = that._asAssemblyName;
+            AssemblyName a1 = asAssemblyName;
+            AssemblyName a2 = that.asAssemblyName;
             if (a1 == null)
             {
-                a1 = new AssemblyName(_asString);
+                a1 = new AssemblyName(asString);
             }
             if (a2 == null)
             {
-                a2 = new AssemblyName(that._asString);
+                a2 = new AssemblyName(that.asString);
             }
 
             int baselineResult = String.Compare(a1.Name, a2.Name, StringComparison.OrdinalIgnoreCase);
@@ -504,23 +520,23 @@ namespace Microsoft.Build.Shared
                 return 0;
             }
             // Do both have assembly names?
-            if (_asAssemblyName != null && that._asAssemblyName != null)
+            if (asAssemblyName != null && that.asAssemblyName != null)
             {
                 // Pointer compare.
-                if (_asAssemblyName == that._asAssemblyName)
+                if (asAssemblyName == that.asAssemblyName)
                 {
                     return 0;
                 }
 
                 // Base name compare.
-                return String.Compare(_asAssemblyName.Name, that._asAssemblyName.Name, StringComparison.OrdinalIgnoreCase);
+                return String.Compare(asAssemblyName.Name, that.asAssemblyName.Name, StringComparison.OrdinalIgnoreCase);
             }
 
             // Do both have strings?
-            if (_asString != null && that._asString != null)
+            if (asString != null && that.asString != null)
             {
                 // If we have two random-case strings, then we need to compare case sensitively.
-                return CompareBaseNamesStringWise(_asString, that._asString);
+                return CompareBaseNamesStringWise(asString, that.asString);
             }
 
             // Fall back to comparing by name. This is the slow path.
@@ -572,22 +588,22 @@ namespace Microsoft.Build.Shared
         {
             AssemblyNameExtension newExtension = new AssemblyNameExtension();
 
-            if (_asAssemblyName != null)
+            if (asAssemblyName != null)
             {
 #if FEATURE_ASSEMBLYNAME_CLONE
-                newExtension._asAssemblyName = (AssemblyName)_asAssemblyName.Clone();
+                newExtension.asAssemblyName = (AssemblyName)asAssemblyName.Clone();
 #else
-                newExtension._asAssemblyName = new AssemblyName(_asAssemblyName.FullName);
+                newExtension.asAssemblyName = new AssemblyName(asAssemblyName.FullName);
 #endif
             }
 
-            newExtension._asString = _asString;
-            newExtension._isSimpleName = _isSimpleName;
-            newExtension._hasProcessorArchitectureInFusionName = _hasProcessorArchitectureInFusionName;
-            newExtension._remappedFrom = _remappedFrom;
+            newExtension.asString = asString;
+            newExtension.isSimpleName = isSimpleName;
+            newExtension.hasProcessorArchitectureInFusionName = hasProcessorArchitectureInFusionName;
+            newExtension.remappedFrom = remappedFrom;
 
             // We are cloning so we can now party on the object even if the parent was immutable
-            newExtension._immutable = false;
+            newExtension.immutable = false;
 
             return newExtension;
         }
@@ -610,7 +626,7 @@ namespace Microsoft.Build.Shared
         {
             get
             {
-                return _immutable;
+                return immutable;
             }
         }
 
@@ -619,7 +635,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal void MarkImmutable()
         {
-            _immutable = true;
+            immutable = true;
         }
 
         /// <summary>
@@ -670,19 +686,19 @@ namespace Microsoft.Build.Shared
             }
 
             // Do both have assembly names?
-            if (_asAssemblyName != null && that._asAssemblyName != null)
+            if (asAssemblyName != null && that.asAssemblyName != null)
             {
                 // Pointer compare.
-                if (Object.ReferenceEquals(_asAssemblyName, that._asAssemblyName))
+                if (Object.ReferenceEquals(asAssemblyName, that.asAssemblyName))
                 {
                     return true;
                 }
             }
 
             // Do both have strings that equal each-other?
-            if (_asString != null && that._asString != null)
+            if (asString != null && that.asString != null)
             {
-                if (_asString == that._asString)
+                if (asString == that.asString)
                 {
                     return true;
                 }
@@ -797,7 +813,7 @@ namespace Microsoft.Build.Shared
         {
             get
             {
-                return _asAssemblyName == null && _asString == null;
+                return asAssemblyName == null && asString == null;
             }
         }
 
@@ -840,7 +856,7 @@ namespace Microsoft.Build.Shared
         override public string ToString()
         {
             CreateFullName();
-            return _asString;
+            return asString;
         }
 
         /// <summary>
@@ -895,10 +911,10 @@ namespace Microsoft.Build.Shared
             }
 
             // Do both have assembly names?
-            if (_asAssemblyName != null && that._asAssemblyName != null)
+            if (asAssemblyName != null && that.asAssemblyName != null)
             {
                 // Pointer compare.
-                if (Object.ReferenceEquals(_asAssemblyName, that._asAssemblyName))
+                if (Object.ReferenceEquals(asAssemblyName, that.asAssemblyName))
                 {
                     return true;
                 }

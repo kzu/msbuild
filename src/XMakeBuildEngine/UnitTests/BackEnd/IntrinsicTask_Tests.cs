@@ -2723,6 +2723,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        //FIXME: Just need to fix path separators in the test
         public void RemoveComplexMidlExample()
         {
             MockLogger logger = new MockLogger();
@@ -2920,6 +2922,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// 
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void IncludeCheckOnMetadata_3()
         {
             MockLogger logger = new MockLogger();
@@ -2932,7 +2936,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             {
                 if (Directory.Exists(directoryForTest))
                 {
-                    Directory.Delete(directoryForTest, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(directoryForTest, true);
                 }
                 else
                 {
@@ -2962,7 +2966,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             {
                 if (Directory.Exists(directoryForTest))
                 {
-                    Directory.Delete(directoryForTest, true);
+                    FileUtilities.DeleteWithoutTrailingBackslash(directoryForTest, true);
                 }
             }
         }

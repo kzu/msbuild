@@ -39,15 +39,18 @@
     <Compile Include="..\..\Shared\UnitTests\MockEngine.cs" />
     <Compile Include="..\..\Shared\UnitTests\MockLogger.cs" />
     <Compile Include="..\..\Shared\UnitTests\ObjectModelHelpers.cs" />
+    <Compile Include="..\..\Shared\UnitTests\RunnerUtilities.cs" />
     <Compile Include="CommandLineSwitches_Tests.cs" />
     <Compile Include="ProjectSchemaValidationHandler_Tests.cs" />
     <Compile Include="XMake_Tests.cs" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(NetCoreBuild)' != 'true'">
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
-    <Reference Include="System.XML" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\Utilities\Microsoft.Build.Utilities.csproj">
       <Project>{828566ee-6f6a-4ef4-98b0-513f7df9c628}</Project>
       <Name>Microsoft.Build.Utilities</Name>
@@ -64,11 +67,6 @@
       <Project>{571F09DB-A81A-4444-945C-6F7B530054CD}</Project>
       <Name>Microsoft.Build.Framework</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup Condition="'$(NetCoreBuild)' != 'true'">
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <!-- IDE specific Information -->
   <ItemGroup>

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Reflection;
 using System.Text;
 
 using Microsoft.Build.Shared;
@@ -17,6 +18,8 @@ namespace Microsoft.Build.UnitTests
         /// Exercises FileUtilities.ItemSpecModifiers.GetItemSpecModifier
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetItemSpecModifier()
         {
             TestGetItemSpecModifier(Directory.GetCurrentDirectory());
@@ -35,64 +38,85 @@ namespace Microsoft.Build.UnitTests
 
             cache = null;
             modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"foo\goo", String.Empty, FileUtilities.ItemSpecModifiers.RelativeDir, ref cache);
-            Assert.Equal(@"foo\", modifier);
+            Assert.Equal(@"foo" + Path.DirectorySeparatorChar, modifier);
 
             // confirm we get the same thing back the second time
             modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"foo\goo", String.Empty, FileUtilities.ItemSpecModifiers.RelativeDir, ref cache);
-            Assert.Equal(@"foo\", modifier);
+            Assert.Equal(@"foo" + Path.DirectorySeparatorChar, modifier);
 
             cache = null;
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", String.Empty, FileUtilities.ItemSpecModifiers.FullPath, ref cache);
-            Assert.Equal(@"c:\foo.txt", modifier);
-            Assert.Equal(@"c:\foo.txt", cache);
+            string itemSpec = NativeMethodsShared.IsWindows ? @"c:\foo.txt" : "/foo.txt";
+            string itemSpecDir = NativeMethodsShared.IsWindows ? @"c:\" : "/";
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, String.Empty, FileUtilities.ItemSpecModifiers.FullPath, ref cache);
+            Assert.Equal(itemSpec, modifier);
+            Assert.Equal(itemSpec, cache);
 
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", String.Empty, FileUtilities.ItemSpecModifiers.RootDir, ref cache);
-            Assert.Equal(@"c:\", modifier);
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, String.Empty, FileUtilities.ItemSpecModifiers.RootDir, ref cache);
+            Assert.Equal(itemSpecDir, modifier);
 
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", String.Empty, FileUtilities.ItemSpecModifiers.Filename, ref cache);
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, String.Empty, FileUtilities.ItemSpecModifiers.Filename, ref cache);
             Assert.Equal(@"foo", modifier);
 
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", String.Empty, FileUtilities.ItemSpecModifiers.Extension, ref cache);
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, String.Empty, FileUtilities.ItemSpecModifiers.Extension, ref cache);
             Assert.Equal(@".txt", modifier);
 
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", String.Empty, FileUtilities.ItemSpecModifiers.Directory, ref cache);
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, String.Empty, FileUtilities.ItemSpecModifiers.Directory, ref cache);
             Assert.Equal(String.Empty, modifier);
 
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", String.Empty, FileUtilities.ItemSpecModifiers.Identity, ref cache);
-            Assert.Equal(@"c:\foo.txt", modifier);
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, String.Empty, FileUtilities.ItemSpecModifiers.Identity, ref cache);
+            Assert.Equal(itemSpec, modifier);
 
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", @"c:\abc\goo.proj", FileUtilities.ItemSpecModifiers.DefiningProjectDirectory, ref cache);
-            Assert.Equal(@"c:\abc\", modifier);
+            string projectPath = NativeMethodsShared.IsWindows ? @"c:\abc\goo.proj" : @"/abc/goo.proj";
+            string projectPathDir = NativeMethodsShared.IsWindows ? @"c:\abc\" : @"/abc/";
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, projectPath, FileUtilities.ItemSpecModifiers.DefiningProjectDirectory, ref cache);
+            Assert.Equal(projectPathDir, modifier);
 
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", @"c:\abc\goo.proj", FileUtilities.ItemSpecModifiers.DefiningProjectExtension, ref cache);
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, projectPath, FileUtilities.ItemSpecModifiers.DefiningProjectExtension, ref cache);
             Assert.Equal(@".proj", modifier);
 
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", @"c:\abc\goo.proj", FileUtilities.ItemSpecModifiers.DefiningProjectFullPath, ref cache);
-            Assert.Equal(@"c:\abc\goo.proj", modifier);
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, projectPath, FileUtilities.ItemSpecModifiers.DefiningProjectFullPath, ref cache);
+            Assert.Equal(projectPath, modifier);
 
-            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, @"c:\foo.txt", @"c:\abc\goo.proj", FileUtilities.ItemSpecModifiers.DefiningProjectName, ref cache);
+            modifier = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(currentDirectory, itemSpec, projectPath, FileUtilities.ItemSpecModifiers.DefiningProjectName, ref cache);
             Assert.Equal(@"goo", modifier);
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void MakeRelativeTests()
         {
-            Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def", @"c:\abc\def\foo.cpp"));
-            Assert.Equal(@"def\foo.cpp", FileUtilities.MakeRelative(@"c:\abc\", @"c:\abc\def\foo.cpp"));
-            Assert.Equal(@"..\foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def\xyz", @"c:\abc\def\foo.cpp"));
-            Assert.Equal(@"..\ttt\foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def\xyz\", @"c:\abc\def\ttt\foo.cpp"));
-            Assert.Equal(@"e:\abc\def\foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def", @"e:\abc\def\foo.cpp"));
-            Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"\\aaa\abc\def", @"\\aaa\abc\def\foo.cpp"));
-            Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def", @"foo.cpp"));
-            Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def", @"..\def\foo.cpp"));
-            Assert.Equal(@"\\host\path\file", FileUtilities.MakeRelative(@"c:\abc\def", @"\\host\path\file"));
-            Assert.Equal(@"\\host\d$\file", FileUtilities.MakeRelative(@"c:\abc\def", @"\\host\d$\file"));
+            if (NativeMethodsShared.IsWindows)
+            {
+                Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def", @"c:\abc\def\foo.cpp"));
+                Assert.Equal(@"def\foo.cpp", FileUtilities.MakeRelative(@"c:\abc\", @"c:\abc\def\foo.cpp"));
+                Assert.Equal(@"..\foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def\xyz", @"c:\abc\def\foo.cpp"));
+                Assert.Equal(@"..\ttt\foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def\xyz\", @"c:\abc\def\ttt\foo.cpp"));
+                Assert.Equal(@"e:\abc\def\foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def", @"e:\abc\def\foo.cpp"));
+                Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"\\aaa\abc\def", @"\\aaa\abc\def\foo.cpp"));
+                Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def", @"foo.cpp"));
+                Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def", @"..\def\foo.cpp"));
+                Assert.Equal(@"\\host\path\file", FileUtilities.MakeRelative(@"c:\abc\def", @"\\host\path\file"));
+                Assert.Equal(@"\\host\d$\file", FileUtilities.MakeRelative(@"c:\abc\def", @"\\host\d$\file"));
+            }
+            else
+            {
+                Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"/abc/def", @"/abc/def/foo.cpp"));
+                Assert.Equal(@"def/foo.cpp", FileUtilities.MakeRelative(@"/abc/", @"/abc/def/foo.cpp"));
+                Assert.Equal(@"..\foo.cpp", FileUtilities.MakeRelative(@"/abc/def/xyz", @"/abc/def/foo.cpp"));
+                Assert.Equal(@"..\ttt\foo.cpp", FileUtilities.MakeRelative(@"/abc/def/xyz/", @"/abc/def/ttt/foo.cpp"));
+                Assert.Equal(@"/abc/def/foo.cpp", FileUtilities.MakeRelative(@"/abc/def", @"/abc/def/foo.cpp"));
+                Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"/abc/def", @"foo.cpp"));
+                Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"/abc/def", @"../def/foo.cpp"));
+            }
         }
 
         /// <summary>
         /// Exercises FileUtilities.ItemSpecModifiers.GetItemSpecModifier on a bad path.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetItemSpecModifierOnBadPath()
         {
             Assert.Throws<InvalidOperationException>(() =>
@@ -105,6 +129,8 @@ namespace Microsoft.Build.UnitTests
         /// Exercises FileUtilities.ItemSpecModifiers.GetItemSpecModifier on a bad path.
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetItemSpecModifierOnBadPath2()
         {
             Assert.Throws<InvalidOperationException>(() =>
@@ -155,6 +181,8 @@ namespace Microsoft.Build.UnitTests
         /// Exercises FileUtilities.EndsWithSlash
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void EndsWithSlash()
         {
             Assert.True(FileUtilities.EndsWithSlash(@"C:\foo\"));
@@ -177,6 +205,8 @@ namespace Microsoft.Build.UnitTests
         /// Exercises FileUtilities.GetDirectory
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetDirectoryWithTrailingSlash()
         {
             Assert.Equal(NativeMethodsShared.IsWindows ? @"c:\" : "/", FileUtilities.GetDirectory(NativeMethodsShared.IsWindows ? @"c:\" : "/"));
@@ -334,6 +364,8 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void NormalizePathThatFitsIntoMaxPath()
         {
             string currentDirectory = @"c:\aardvark\aardvark\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890";
@@ -344,6 +376,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void NormalizePathThatDoesntFitIntoMaxPath()
         {
             Assert.Throws<PathTooLongException>(() =>
@@ -360,6 +393,8 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetItemSpecModifierRootDirThatFitsIntoMaxPath()
         {
             string currentDirectory = @"c:\aardvark\aardvark\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890";
@@ -392,6 +427,12 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void NormalizePathBadUNC1()
         {
+            // UNC is not useful outside Windows
+            if (!NativeMethodsShared.IsWindows)
+            {
+                return;
+            }
+
             Assert.Throws<ArgumentException>(() =>
             {
                 Assert.Equal(null, FileUtilities.NormalizePath(@"\\"));
@@ -402,6 +443,12 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void NormalizePathBadUNC2()
         {
+            // UNC is not useful outside Windows
+            if (!NativeMethodsShared.IsWindows)
+            {
+                return;
+            }
+
             Assert.Throws<ArgumentException>(() =>
             {
                 Assert.Equal(null, FileUtilities.NormalizePath(@"\\XXX\"));
@@ -412,6 +459,12 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void NormalizePathBadUNC3()
         {
+            // UNC is not useful outside Windows
+            if (!NativeMethodsShared.IsWindows)
+            {
+                return;
+            }
+
             Assert.Throws<ArgumentException>(() =>
             {
                 Assert.Equal(@"\\localhost", FileUtilities.NormalizePath(@"\\localhost"));
@@ -420,12 +473,16 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void NormalizePathGoodUNC()
         {
             Assert.Equal(@"\\localhost\share", FileUtilities.NormalizePath(@"\\localhost\share"));
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void NormalizePathTooLongWithDots()
         {
             string longPart = new string('x', 300);
@@ -435,6 +492,12 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void NormalizePathBadGlobalroot()
         {
+            // device path is not useful outside Windows
+            if (!NativeMethodsShared.IsWindows)
+            {
+                return;
+            }
+
             Assert.Throws<ArgumentException>(() =>
             {
                 /*
@@ -451,6 +514,8 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void NormalizePathInvalid()
         {
             Assert.Throws<ArgumentException>(() =>
@@ -462,6 +527,8 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void FileOrDirectoryExistsNoThrow()
         {
             Assert.Equal(false, FileUtilities.FileOrDirectoryExistsNoThrow("||"));
@@ -486,6 +553,7 @@ namespace Microsoft.Build.UnitTests
         // These tests will need to be redesigned for Linux
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void FileOrDirectoryExistsNoThrowTooLongWithDots()
         {
             int length = (Environment.SystemDirectory + @"\" + @"\..\..\..\" + Environment.SystemDirectory.Substring(3)).Length;
@@ -501,6 +569,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void FileOrDirectoryExistsNoThrowTooLongWithDotsRelative()
         {
             int length = (Environment.SystemDirectory + @"\" + @"\..\..\..\" + Environment.SystemDirectory.Substring(3)).Length;
@@ -555,6 +624,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void DirectoryExistsNoThrowTooLongWithDotsRelative()
         {
             int length = (Environment.SystemDirectory + @"\" + @"\..\..\..\" + Environment.SystemDirectory.Substring(3)).Length;
@@ -583,6 +653,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void FileExistsNoThrowTooLongWithDots()
         {
             int length = (Environment.SystemDirectory + @"\" + @"\..\..\..\" + Environment.SystemDirectory.Substring(3) + @"\..\explorer.exe").Length;
@@ -598,6 +669,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void FileExistsNoThrowTooLongWithDotsRelative()
         {
             int length = (Environment.SystemDirectory + @"\" + @"\..\..\..\" + Environment.SystemDirectory.Substring(3) + @"\..\explorer.exe").Length;
@@ -626,6 +698,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void GetFileInfoNoThrowTooLongWithDots()
         {
             int length = (Environment.SystemDirectory + @"\" + @"\..\..\..\" + Environment.SystemDirectory.Substring(3) + @"\..\explorer.exe").Length;
@@ -641,6 +714,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void GetFileInfoNoThrowTooLongWithDotsRelative()
         {
             int length = (Environment.SystemDirectory + @"\" + @"\..\..\..\" + Environment.SystemDirectory.Substring(3) + @"\..\explorer.exe").Length;
@@ -737,7 +811,7 @@ namespace Microsoft.Build.UnitTests
             finally
             {
                 File.Delete(path);
-                Directory.Delete(directory);
+                FileUtilities.DeleteWithoutTrailingBackslash(directory);
             }
         }
 
@@ -767,6 +841,8 @@ namespace Microsoft.Build.UnitTests
         /// Extension is invalid
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void GenerateTempBatchFileWithBadExtension()
         {
             Assert.Throws<IOException>(() =>
@@ -791,6 +867,8 @@ namespace Microsoft.Build.UnitTests
         /// Directory is invalid
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
+        [Trait("Category", "netcore-osx-failing")]
         public void GenerateTempBatchFileWithBadDirectory()
         {
             Assert.Throws<IOException>(() =>
@@ -798,6 +876,25 @@ namespace Microsoft.Build.UnitTests
                 Shared.FileUtilities.GetTemporaryFile("|", ".tmp");
             }
            );
+        }
+
+        [Fact]
+        [PlatformSpecific(Xunit.PlatformID.AnyUnix)]
+        public void AbsolutePathLooksLikeUnixPathOnUnix()
+        {
+            var absolutePathToThisAssembly = Path.GetFullPath(typeof (FileUtilities_Tests).GetTypeInfo().Assembly.Location);
+
+            Assert.True(FileUtilities.LooksLikeUnixFilePath(absolutePathToThisAssembly));
+        }
+
+        [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)]
+        public void PathDoesNotLookLikeUnixPathOnWindows()
+        {
+            var absolutePathToThisAssembly = Path.GetFullPath(typeof(FileUtilities_Tests).GetTypeInfo().Assembly.Location);
+
+            Assert.False(FileUtilities.LooksLikeUnixFilePath(absolutePathToThisAssembly));
+            Assert.False(FileUtilities.LooksLikeUnixFilePath("/path/that/looks/unixy"));
         }
     }
 }

@@ -331,8 +331,8 @@ namespace Microsoft.Build.UnitTests.OM.Definition
             finally
             {
                 File.Delete(file);
-                Directory.Delete(subdirectory);
-                Directory.Delete(directory);
+                FileUtilities.DeleteWithoutTrailingBackslash(subdirectory);
+                FileUtilities.DeleteWithoutTrailingBackslash(directory);
             }
         }
 
@@ -378,8 +378,8 @@ namespace Microsoft.Build.UnitTests.OM.Definition
             finally
             {
                 File.Delete(file);
-                Directory.Delete(subdirectory);
-                Directory.Delete(directory);
+                FileUtilities.DeleteWithoutTrailingBackslash(subdirectory);
+                FileUtilities.DeleteWithoutTrailingBackslash(directory);
             }
         }
 
@@ -487,7 +487,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
                 File.Delete(file2);
                 File.Delete(file3);
 
-                Directory.Delete(directory);
+                FileUtilities.DeleteWithoutTrailingBackslash(directory);
             }
         }
 
@@ -1293,6 +1293,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
         /// the MSBuild evaluation data.
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void RenameItemInProjectWithWildcards()
         {
             string projectDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -1319,7 +1320,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
             }
             finally
             {
-                Directory.Delete(projectDirectory, recursive: true);
+                FileUtilities.DeleteWithoutTrailingBackslash(projectDirectory, recursive: true);
             }
         }
 

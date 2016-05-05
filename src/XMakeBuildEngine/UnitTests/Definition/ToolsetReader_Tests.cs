@@ -16,17 +16,22 @@ using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Win32;
 
+#if FEATURE_WIN32_REGISTRY
 using RegistryKeyWrapper = Microsoft.Build.Internal.RegistryKeyWrapper;
 using RegistryException = Microsoft.Build.Exceptions.RegistryException;
+#endif
 using InvalidToolsetDefinitionException = Microsoft.Build.Exceptions.InvalidToolsetDefinitionException;
 using InternalUtilities = Microsoft.Build.Internal.Utilities;
 using Xunit;
 
 namespace Microsoft.Build.UnitTests.Definition
 {
+#if FEATURE_REGISTRY_TOOLSETS
+
     /// <summary>
     /// Unit tests for ToolsetReader class and its derived classes
     /// </summary>
+    [PlatformSpecific(Xunit.PlatformID.Windows)]
     public class ToolsetReaderTests : IDisposable
     {
         // The registry key that is passed as the baseKey parameter to the ToolsetRegistryReader class
@@ -128,7 +133,7 @@ namespace Microsoft.Build.UnitTests.Definition
         }
 #endif
 
-        #region "Reading from application configuration file tests"
+    #region "Reading from application configuration file tests"
 
 #if FEATURE_SYSTEM_CONFIGURATION
 
@@ -644,6 +649,7 @@ namespace Microsoft.Build.UnitTests.Definition
         }
 #endif
 
+#if FEATURE_WIN32_REGISTRY
         /// <summary>
         /// Tests the case when a blank property name is specified in the registry
         /// </summary>
@@ -708,7 +714,7 @@ namespace Microsoft.Build.UnitTests.Definition
             }
            );
         }
-
+#endif
 #if FEATURE_SYSTEM_CONFIGURATION
         /// <summary>
         /// Tests the case when a blank property value is specified in the config file
@@ -856,9 +862,9 @@ namespace Microsoft.Build.UnitTests.Definition
                                                                values,
                                                                GetStandardRegistryReader(),
 #if FEATURE_SYSTEM_CONFIGURATION
-                                                           GetStandardConfigurationReader(),
+                                                               GetStandardConfigurationReader(),
 #endif
-                                                           new ProjectCollection().EnvironmentProperties,
+                                                               new ProjectCollection().EnvironmentProperties,
                                                                new PropertyDictionary<ProjectPropertyInstance>(),
                                                                ToolsetDefinitionLocations.Registry
                                                            );
@@ -992,9 +998,9 @@ namespace Microsoft.Build.UnitTests.Definition
             Assert.Equal(@"some>value", values["2>.0"].Properties["foo"].EvaluatedValue);
         }
 #endif
-        #endregion
+    #endregion
 
-        #region "GetToolsetData tests"
+    #region "GetToolsetData tests"
 
         /// <summary>
         /// Tests the case where registry and config file contains different toolsVersion
@@ -1045,7 +1051,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             // Verifications
@@ -1184,9 +1190,9 @@ namespace Microsoft.Build.UnitTests.Definition
                                                                values,
                                                                GetStandardRegistryReader(),
 #if FEATURE_SYSTEM_CONFIGURATION
-                                                           GetStandardConfigurationReader(),
+                                                               GetStandardConfigurationReader(),
 #endif
-                                                           new ProjectCollection().EnvironmentProperties,
+                                                               new ProjectCollection().EnvironmentProperties,
                                                                new PropertyDictionary<ProjectPropertyInstance>(),
                                                                ToolsetDefinitionLocations.Registry
                                                            );
@@ -1277,9 +1283,9 @@ namespace Microsoft.Build.UnitTests.Definition
                                                                values,
                                                                GetStandardRegistryReader(),
 #if FEATURE_SYSTEM_CONFIGURATION
-                                                           GetStandardConfigurationReader(),
+                                                               GetStandardConfigurationReader(),
 #endif
-                                                           new ProjectCollection().EnvironmentProperties,
+                                                               new ProjectCollection().EnvironmentProperties,
                                                                new PropertyDictionary<ProjectPropertyInstance>(),
                                                                ToolsetDefinitionLocations.Registry
                                                            );
@@ -1388,7 +1394,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal(1, values.Count);
@@ -1417,9 +1423,9 @@ namespace Microsoft.Build.UnitTests.Definition
                                                                values,
                                                                GetStandardRegistryReader(),
 #if FEATURE_SYSTEM_CONFIGURATION
-                                                           null,
+                                                               null,
 #endif
-                                                           new ProjectCollection().EnvironmentProperties,
+                                                               new ProjectCollection().EnvironmentProperties,
                                                                new PropertyDictionary<ProjectPropertyInstance>(),
                                                                ToolsetDefinitionLocations.Registry
                                                            );
@@ -1632,9 +1638,9 @@ namespace Microsoft.Build.UnitTests.Definition
                                                                values,
                                                                GetStandardRegistryReader(),
 #if FEATURE_SYSTEM_CONFIGURATION
-                                                           null,
+                                                               null,
 #endif
-                                                           new ProjectCollection().EnvironmentProperties,
+                                                               new ProjectCollection().EnvironmentProperties,
                                                                new PropertyDictionary<ProjectPropertyInstance>(),
                                                                ToolsetDefinitionLocations.Registry
                                                            );
@@ -1660,9 +1666,9 @@ namespace Microsoft.Build.UnitTests.Definition
                                                                values,
                                                                GetStandardRegistryReader(),
 #if FEATURE_SYSTEM_CONFIGURATION
-                                                           null,
+                                                               null,
 #endif
-                                                           new ProjectCollection().EnvironmentProperties,
+                                                               new ProjectCollection().EnvironmentProperties,
                                                                new PropertyDictionary<ProjectPropertyInstance>(),
                                                                ToolsetDefinitionLocations.Registry
                                                            );
@@ -1732,7 +1738,6 @@ namespace Microsoft.Build.UnitTests.Definition
         /// "TaskLocation" is the name of the value.  The name of the value and the preceding "@" may be omitted if
         /// the default value is desired.
         /// </summary>
-
         [Fact]
         public void ConfigFileInvalidRegistryExpression1()
         {
@@ -2002,7 +2007,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal(1, values.Count);
@@ -2048,7 +2053,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal(1, values.Count);
@@ -2098,7 +2103,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal(1, values.Count);
@@ -2183,7 +2188,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal(1, values.Count);
@@ -2215,7 +2220,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal(1, values.Count);
@@ -2240,7 +2245,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             // Should either be the last-ditch 2.0 toolset, or if 2.0 is not installed, then the last-last-ditch of 4.0
@@ -2279,11 +2284,11 @@ namespace Microsoft.Build.UnitTests.Definition
                                values,
                                GetStandardRegistryReader(),
 #if FEATURE_SYSTEM_CONFIGURATION
-                           GetStandardConfigurationReader(),
+                               GetStandardConfigurationReader(),
 #endif
-                           new ProjectCollection().EnvironmentProperties,
+                               new ProjectCollection().EnvironmentProperties,
                                new PropertyDictionary<ProjectPropertyInstance>(),
-                               ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                               ToolsetDefinitionLocations.Default
                            );
             }
            );
@@ -2320,18 +2325,18 @@ namespace Microsoft.Build.UnitTests.Definition
                                                                values,
                                                                new ToolsetRegistryReader(new ProjectCollection().EnvironmentProperties, new PropertyDictionary<ProjectPropertyInstance>(), mockRegistryKey),
 #if FEATURE_SYSTEM_CONFIGURATION
-                                                           GetStandardConfigurationReader(),
+                                                               GetStandardConfigurationReader(),
 #endif
-                                                           new ProjectCollection().EnvironmentProperties,
+                                                               new ProjectCollection().EnvironmentProperties,
                                                                new PropertyDictionary<ProjectPropertyInstance>(),
-                                                               ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                               ToolsetDefinitionLocations.Default
                                                            );
             });
         }
 
-        #endregion
+    #endregion
 
-        #region "SetDefaultToolsetVersion tests"
+    #region "SetDefaultToolsetVersion tests"
 
         /// <summary>
         /// Tests that the default ToolsVersion is correctly resolved when specified
@@ -2375,7 +2380,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal("5.0", defaultToolsVersion);
@@ -2420,7 +2425,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal("4.0", defaultToolsVersion);
@@ -2470,7 +2475,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal("4.0", defaultToolsVersion);
@@ -2519,7 +2524,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal("13.0", values["4.0"].DefaultOverrideToolsVersion);
@@ -2559,7 +2564,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
 
@@ -2601,7 +2606,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
 
@@ -2643,7 +2648,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal("5.0", defaultToolsVersion);
@@ -2685,7 +2690,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new PropertyDictionary<ProjectPropertyInstance>(),
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             string expectedDefault = "2.0";
@@ -2733,7 +2738,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new ProjectCollection().GlobalPropertiesCollection,
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal("v1", values["4.0"].Properties["p1"].EvaluatedValue);
@@ -2783,7 +2788,7 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            new ProjectCollection().EnvironmentProperties,
                                                            new ProjectCollection().GlobalPropertiesCollection,
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal("Microsoft.NET", values["4.0"].Properties["p1"].EvaluatedValue);
@@ -2835,14 +2840,14 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
                                                            e.EnvironmentProperties,
                                                            e.GlobalPropertiesCollection,
-                                                           ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry
+                                                           ToolsetDefinitionLocations.Default
                                                        );
 
             Assert.Equal("gv1", values["4.0"].Properties["p1"].EvaluatedValue);
             Assert.Equal("gv1", values["4.0"].Properties["p2"].EvaluatedValue);
         }
 
-        #endregion
+    #endregion
 
         private ToolsetRegistryReader GetStandardRegistryReader()
         {
@@ -2858,6 +2863,9 @@ namespace Microsoft.Build.UnitTests.Definition
 #endif
     }
 
+#endif
+
+#if FEATURE_WIN32_REGISTRY
     internal class MockRegistryKey : RegistryKeyWrapper
     {
         public enum WhereToThrow
@@ -2984,5 +2992,6 @@ namespace Microsoft.Build.UnitTests.Definition
             return base.OpenSubKey(name);
         }
     }
+#endif
 }
 

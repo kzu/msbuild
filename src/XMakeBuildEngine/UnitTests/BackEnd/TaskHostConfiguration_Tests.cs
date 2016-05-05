@@ -18,6 +18,7 @@ using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
+
 using Xunit;
 
 namespace Microsoft.Build.UnitTests.BackEnd
@@ -45,26 +46,22 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     Directory.GetCurrentDirectory(),
                     null,
 #if FEATURE_THREAD_CULTURE
-                Thread.CurrentThread.CurrentCulture,
+                    Thread.CurrentThread.CurrentCulture,
                     Thread.CurrentThread.CurrentUICulture,
 #else
-                CultureInfo.CurrentCulture,
-                CultureInfo.CurrentCulture,
+                    CultureInfo.CurrentCulture,
+                    CultureInfo.CurrentCulture,
 #endif
 #if FEATURE_APPDOMAIN
-                null,
+                    null,
 #endif
-                1,
+                    1,
                     1,
                     @"c:\my project\myproj.proj",
                     _continueOnErrorDefault,
                     null,
-#if FEATURE_ASSEMBLY_LOADFROM
-                @"c:\my tasks\mytask.dll",
-#else
-                new AssemblyName("mytask"),
-#endif
-                null);
+                    @"c:\my tasks\mytask.dll",
+                    null);
             }
            );
         }
@@ -81,26 +78,22 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     Directory.GetCurrentDirectory(),
                     null,
 #if FEATURE_THREAD_CULTURE
-                Thread.CurrentThread.CurrentCulture,
+                    Thread.CurrentThread.CurrentCulture,
                     Thread.CurrentThread.CurrentUICulture,
 #else
-                CultureInfo.CurrentCulture,
-                CultureInfo.CurrentCulture,
+                    CultureInfo.CurrentCulture,
+                    CultureInfo.CurrentCulture,
 #endif
 #if FEATURE_APPDOMAIN
-                null,
+                    null,
 #endif
-                1,
+                    1,
                     1,
                     @"c:\my project\myproj.proj",
                     _continueOnErrorDefault,
                     String.Empty,
-#if FEATURE_ASSEMBLY_LOADFROM
-                @"c:\my tasks\mytask.dll",
-#else
-                new AssemblyName("mytask"),
-#endif
-                null);
+                    @"c:\my tasks\mytask.dll",
+                    null);
             }
            );
         }
@@ -117,16 +110,16 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     Directory.GetCurrentDirectory(),
                     null,
 #if FEATURE_THREAD_CULTURE
-                Thread.CurrentThread.CurrentCulture,
+                    Thread.CurrentThread.CurrentCulture,
                     Thread.CurrentThread.CurrentUICulture,
 #else
-                CultureInfo.CurrentCulture,
-                CultureInfo.CurrentCulture,
+                    CultureInfo.CurrentCulture,
+                    CultureInfo.CurrentCulture,
 #endif
 #if FEATURE_APPDOMAIN
-                null,
+                    null,
 #endif
-                1,
+                    1,
                     1,
                     @"c:\my project\myproj.proj",
                     _continueOnErrorDefault,
@@ -136,6 +129,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             }
            );
         }
+
+#if FEATURE_ASSEMBLY_LOADFROM
         /// <summary>
         /// Test that an exception is thrown when the path to the task assembly is empty
         /// </summary>
@@ -149,29 +144,27 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     Directory.GetCurrentDirectory(),
                     null,
 #if FEATURE_THREAD_CULTURE
-                Thread.CurrentThread.CurrentCulture,
+                    Thread.CurrentThread.CurrentCulture,
                     Thread.CurrentThread.CurrentUICulture,
 #else
-                CultureInfo.CurrentCulture,
-                CultureInfo.CurrentCulture,
+                    CultureInfo.CurrentCulture,
+                    CultureInfo.CurrentCulture,
 #endif
 #if FEATURE_APPDOMAIN
-                null,
+                    null,
 #endif
-                1,
+                    1,
                     1,
                     @"c:\my project\myproj.proj",
                     _continueOnErrorDefault,
                     "TaskName",
-#if FEATURE_ASSEMBLY_LOADFROM
-                String.Empty,
-#else
-                new AssemblyName(String.Empty),
-#endif
-                null);
+                    String.Empty,
+                    null);
             }
            );
         }
+#endif
+
         /// <summary>
         /// Test the valid constructors.  
         /// </summary>
@@ -197,11 +190,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 @"c:\my project\myproj.proj",
                 _continueOnErrorDefault,
                 "TaskName",
-#if FEATURE_ASSEMBLY_LOADFROM
                 @"c:\MyTasks\MyTask.dll",
-#else
-                new AssemblyName("MyTask"),
-#endif
                 null);
             TaskHostConfiguration config2 = new TaskHostConfiguration(
                 1,
@@ -222,11 +211,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 @"c:\my project\myproj.proj",
                 _continueOnErrorDefault,
                 "TaskName",
-#if FEATURE_ASSEMBLY_LOADFROM
                 @"c:\MyTasks\MyTask.dll",
-#else
-                new AssemblyName("MyTask"),
-#endif
                 null);
 
             IDictionary<string, object> parameters = new Dictionary<string, object>();
@@ -249,11 +234,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 @"c:\my project\myproj.proj",
                 _continueOnErrorDefault,
                 "TaskName",
-#if FEATURE_ASSEMBLY_LOADFROM
                 @"c:\MyTasks\MyTask.dll",
-#else
-                new AssemblyName("MyTask"),
-#endif
                 parameters);
 
             IDictionary<string, object> parameters2 = new Dictionary<string, object>();
@@ -281,11 +262,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 @"c:\my project\myproj.proj",
                 _continueOnErrorDefault,
                 "TaskName",
-#if FEATURE_ASSEMBLY_LOADFROM
                 @"c:\MyTasks\MyTask.dll",
-#else
-                new AssemblyName("MyTask"),
-#endif
                 parameters2);
         }
 
@@ -314,11 +291,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 @"c:\my project\myproj.proj",
                 _continueOnErrorDefault,
                 "TaskName",
-#if FEATURE_ASSEMBLY_LOADFROM
                 @"c:\MyTasks\MyTask.dll",
-#else
-                new AssemblyName("MyTask"),
-#endif
                 null);
 
             ((INodePacketTranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
@@ -358,11 +331,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 @"c:\my project\myproj.proj",
                 _continueOnErrorDefault,
                 "TaskName",
-#if FEATURE_ASSEMBLY_LOADFROM
                 @"c:\MyTasks\MyTask.dll",
-#else
-                new AssemblyName("MyTask"),
-#endif
                 new Dictionary<string, object>());
 
             ((INodePacketTranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
@@ -378,6 +347,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Equal(config.TaskParameters.Count, deserializedConfig.TaskParameters.Count);
         }
 
+#if FEATURE_BINARY_SERIALIZATION
         /// <summary>
         /// Test serialization / deserialization when the parameter dictionary contains just value types. 
         /// </summary>
@@ -427,6 +397,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Equal(config.TaskParameters["Text"].WrappedParameter, deserializedConfig.TaskParameters["Text"].WrappedParameter);
             Assert.Equal(config.TaskParameters["BoolValue"].WrappedParameter, deserializedConfig.TaskParameters["BoolValue"].WrappedParameter);
         }
+#endif
 
         /// <summary>
         /// Test serialization / deserialization when the parameter dictionary contains an ITaskItem. 
@@ -455,11 +426,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 @"c:\my project\myproj.proj",
                 _continueOnErrorDefault,
                 "TaskName",
-#if FEATURE_ASSEMBLY_LOADFROM
                 @"c:\MyTasks\MyTask.dll",
-#else
-                new AssemblyName("MyTask"),
-#endif
                 parameters);
 
             ((INodePacketTranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
@@ -503,11 +470,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 @"c:\my project\myproj.proj",
                 _continueOnErrorDefault,
                 "TaskName",
-#if FEATURE_ASSEMBLY_LOADFROM
                 @"c:\MyTasks\MyTask.dll",
-#else
-                new AssemblyName("MyTask"),
-#endif
                 parameters);
 
             ((INodePacketTranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());

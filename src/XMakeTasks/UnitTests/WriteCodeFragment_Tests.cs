@@ -25,6 +25,7 @@ namespace Microsoft.Build.UnitTests
         /// Need an available language
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void InvalidLanguage()
         {
             WriteCodeFragment task = new WriteCodeFragment();
@@ -116,7 +117,7 @@ namespace Microsoft.Build.UnitTests
             Assert.Equal(file, task.OutputFile.ItemSpec);
             Assert.Equal(true, File.Exists(file));
 
-            Directory.Delete(folder, true);
+            FileUtilities.DeleteWithoutTrailingBackslash(folder, true);
         }
 
         /// <summary>
@@ -195,13 +196,9 @@ namespace Microsoft.Build.UnitTests
         /// Bad directory path
         /// </summary>
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)] // "No invalid characters on Unix"
         public void InvalidDirectoryPath()
         {
-            if (!NativeMethodsShared.IsUnixLike)
-            {
-                return; // "No invalid characters on Unix"
-            }
-
             WriteCodeFragment task = new WriteCodeFragment();
             MockEngine engine = new MockEngine(true);
             task.BuildEngine = engine;

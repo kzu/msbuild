@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Tasks;
+using Microsoft.Build.Shared;
 using Xunit;
 
 namespace Microsoft.Build.UnitTests
@@ -41,7 +42,7 @@ namespace Microsoft.Build.UnitTests
 
             public void Dispose()
             {
-                Directory.Delete(_path, recursive: true);
+                FileUtilities.DeleteWithoutTrailingBackslash(_path, recursive: true);
             }
         }
 
@@ -137,6 +138,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetResolvedRuleSetPath_SimpleNameAndProjectDirectory_NonExistent()
         {
             MockEngine mockEngine = new MockEngine();
@@ -186,6 +188,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetResolvedRuleSetPath_SimpleNameAndDirectories_NonExistent()
         {
             MockEngine mockEngine = new MockEngine();
@@ -207,6 +210,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetResolvedRuleSetPath_RelativePath_WithProject_NonExistent()
         {
             MockEngine mockEngine = new MockEngine();
@@ -229,6 +233,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetResolvedRuleSetPath_RelativePath_WithProject_Existent()
         {
             MockEngine mockEngine = new MockEngine();
@@ -258,6 +263,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void GetResolvedRuleSetPath_RelativePath_NoProject()
         {
             MockEngine mockEngine = new MockEngine();

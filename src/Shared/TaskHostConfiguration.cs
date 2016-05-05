@@ -82,14 +82,10 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private string _taskName;
 
-#if FEATURE_ASSEMBLY_LOADFROM
         /// <summary>
         /// Location of the assembly containing the task to be executed. 
         /// </summary>
         private string _taskLocation;
-#else
-        private AssemblyName _taskAssemblyName;
-#endif
 
         /// <summary>
         /// The set of parameters to apply to the task prior to execution.  
@@ -127,18 +123,12 @@ namespace Microsoft.Build.BackEnd
                 string projectFileOfTask,
                 bool continueOnError,
                 string taskName,
-#if FEATURE_ASSEMBLY_LOADFROM
                 string taskLocation,
-#else
-                AssemblyName taskAssemblyName,
-#endif
                 IDictionary<string, object> taskParameters
             )
         {
             ErrorUtilities.VerifyThrowInternalLength(taskName, "taskName");
-#if FEATURE_ASSEMBLY_LOADFROM
             ErrorUtilities.VerifyThrowInternalLength(taskLocation, "taskLocation");
-#endif
 
             _nodeId = nodeId;
             _startupDirectory = startupDirectory;
@@ -155,7 +145,7 @@ namespace Microsoft.Build.BackEnd
 
             _culture = culture;
             _uiCulture = uiCulture;
-#if FEATURE_ASSEMBLY_LOADFROM
+#if FEATURE_APPDOMAIN
             _appDomainSetup = appDomainSetup;
 #endif
             _lineNumberOfTask = lineNumberOfTask;
@@ -163,11 +153,7 @@ namespace Microsoft.Build.BackEnd
             _projectFileOfTask = projectFileOfTask;
             _continueOnError = continueOnError;
             _taskName = taskName;
-#if FEATURE_ASSEMBLY_LOADFROM
             _taskLocation = taskLocation;
-#else
-            _taskAssemblyName = taskAssemblyName;
-#endif
 
             if (taskParameters != null)
             {
@@ -300,7 +286,6 @@ namespace Microsoft.Build.BackEnd
             { return _taskName; }
         }
 
-#if FEATURE_ASSEMBLY_LOADFROM
         /// <summary>
         /// Path to the assembly to load the task from. 
         /// </summary>
@@ -310,7 +295,6 @@ namespace Microsoft.Build.BackEnd
             get
             { return _taskLocation; }
         }
-#endif
 
         /// <summary>
         /// Parameters to set on the instantiated task prior to execution. 
@@ -343,16 +327,14 @@ namespace Microsoft.Build.BackEnd
             translator.TranslateDictionary(ref _buildProcessEnvironment, StringComparer.OrdinalIgnoreCase);
             translator.TranslateCulture(ref _culture);
             translator.TranslateCulture(ref _uiCulture);
-#if FEATURE_BINARY_SERIALIZATION
+#if FEATURE_BINARY_SERIALIZATION && FEATURE_APPDOMAIN
             translator.TranslateDotNet(ref _appDomainSetup);
 #endif
             translator.Translate(ref _lineNumberOfTask);
             translator.Translate(ref _columnNumberOfTask);
             translator.Translate(ref _projectFileOfTask);
             translator.Translate(ref _taskName);
-#if FEATURE_ASSEMBLY_LOADFROM
             translator.Translate(ref _taskLocation);
-#endif
             translator.TranslateDictionary(ref _taskParameters, StringComparer.OrdinalIgnoreCase, TaskParameter.FactoryForDeserialization);
             translator.Translate(ref _continueOnError);
         }

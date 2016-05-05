@@ -3,7 +3,9 @@
 
 using System;
 using System.IO;
+#if FEATURE_SECURITY_PERMISSIONS
 using System.Security.AccessControl;
+#endif
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -194,6 +196,7 @@ namespace Microsoft.Build.UnitTests
             }
         }
 
+#if FEATURE_SECURITY_PERMISSIONS
         /// <summary>
         /// Reading lines from a file that you have no access to.
         /// </summary>
@@ -241,6 +244,7 @@ namespace Microsoft.Build.UnitTests
                 File.Delete(file);
             }
         }
+#endif
 
         /// <summary>
         /// Invalid encoding

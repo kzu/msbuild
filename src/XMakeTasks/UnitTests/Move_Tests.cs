@@ -26,7 +26,7 @@ namespace Microsoft.Build.UnitTests
 
             try
             {
-                using (StreamWriter sw = new StreamWriter(sourceFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(sourceFile, true))
                     sw.Write("This is a source temp file.");
                 FileInfo file = new FileInfo(sourceFile);
                 file.Attributes = file.Attributes | FileAttributes.ReadOnly; // mark read only
@@ -68,7 +68,7 @@ namespace Microsoft.Build.UnitTests
 
             try
             {
-                using (StreamWriter sw = new StreamWriter(sourceFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(sourceFile, true))
                     sw.Write("This is a source temp file.");
                 FileInfo file = new FileInfo(sourceFile);
                 file.Attributes = file.Attributes | FileAttributes.ReadOnly; // mark read only
@@ -119,7 +119,7 @@ namespace Microsoft.Build.UnitTests
             try
             {
                 File.Delete(sourceFile);
-                using (StreamWriter sw = new StreamWriter(destinationFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(destinationFile, true))
                     sw.Write("This is a destination temp file.");
 
                 ITaskItem[] sourceFiles = new ITaskItem[] { new TaskItem(sourceFile) };
@@ -139,7 +139,7 @@ namespace Microsoft.Build.UnitTests
                 Assert.Equal(0, t.MovedFiles.Length);
 
                 string destinationFileContents;
-                using (StreamReader sr = new StreamReader(destinationFile))
+                using (StreamReader sr = FileUtilities.OpenRead(destinationFile))
                     destinationFileContents = sr.ReadToEnd();
 
                 Assert.Equal(destinationFileContents, "This is a destination temp file."); //                     "Expected the destination file to still contain the contents of destination file."
@@ -160,7 +160,7 @@ namespace Microsoft.Build.UnitTests
             string sourceFile = FileUtilities.GetTemporaryFile();
             try
             {
-                using (StreamWriter sw = new StreamWriter(sourceFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(sourceFile, true))
                 {
                     sw.Write("This is a temp file.");
                 }
@@ -196,10 +196,10 @@ namespace Microsoft.Build.UnitTests
             string destinationFile = FileUtilities.GetTemporaryFile();
             try
             {
-                using (StreamWriter sw = new StreamWriter(sourceFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(sourceFile, true))
                     sw.Write("This is a source temp file.");
 
-                using (StreamWriter sw = new StreamWriter(destinationFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(destinationFile, true))
                     sw.Write("This is a destination temp file.");
 
                 ITaskItem[] sourceFiles = new ITaskItem[] { new TaskItem(sourceFile) };
@@ -218,7 +218,7 @@ namespace Microsoft.Build.UnitTests
                 Assert.True(File.Exists(sourceFile)); // "Source file should be present"
 
                 string destinationFileContents;
-                using (StreamReader sr = new StreamReader(destinationFile))
+                using (StreamReader sr = FileUtilities.OpenRead(destinationFile))
                     destinationFileContents = sr.ReadToEnd();
 
                 Assert.Equal(destinationFileContents, "This is a destination temp file."); //                     "Expected the destination file to be unchanged."
@@ -245,10 +245,10 @@ namespace Microsoft.Build.UnitTests
             string destinationFile = FileUtilities.GetTemporaryFile();
             try
             {
-                using (StreamWriter sw = new StreamWriter(sourceFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(sourceFile, true))
                     sw.Write("This is a source temp file.");
 
-                using (StreamWriter sw = new StreamWriter(destinationFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(destinationFile, true))
                     sw.Write("This is a destination temp file.");
 
                 ITaskItem[] sourceFiles = new ITaskItem[] { new TaskItem(sourceFile) };
@@ -264,7 +264,7 @@ namespace Microsoft.Build.UnitTests
                 Assert.False(File.Exists(sourceFile)); // "Source file should be gone"
 
                 string destinationFileContents;
-                using (StreamReader sr = new StreamReader(destinationFile))
+                using (StreamReader sr = FileUtilities.OpenRead(destinationFile))
                     destinationFileContents = sr.ReadToEnd();
 
                 Assert.Equal(destinationFileContents, "This is a source temp file."); //                     "Expected the destination file to contain the contents of source file."
@@ -291,10 +291,10 @@ namespace Microsoft.Build.UnitTests
             string destinationFile = FileUtilities.GetTemporaryFile();
             try
             {
-                using (StreamWriter sw = new StreamWriter(sourceFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(sourceFile, true))
                     sw.Write("This is a source temp file.");
 
-                using (StreamWriter sw = new StreamWriter(destinationFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(destinationFile, true))
                     sw.Write("This is a destination temp file.");
 
                 ITaskItem[] sourceFiles = new ITaskItem[] { new TaskItem(sourceFile) };
@@ -314,7 +314,7 @@ namespace Microsoft.Build.UnitTests
                 Assert.False(File.Exists(sourceFile)); // "Source file should be gone"
 
                 string destinationFileContents;
-                using (StreamReader sr = new StreamReader(destinationFile))
+                using (StreamReader sr = FileUtilities.OpenRead(destinationFile))
                     destinationFileContents = sr.ReadToEnd();
 
                 Assert.Equal(destinationFileContents, "This is a source temp file."); //                     "Expected the destination file to contain the contents of source file."
@@ -339,10 +339,10 @@ namespace Microsoft.Build.UnitTests
             string destinationFile = FileUtilities.GetTemporaryFile();
             try
             {
-                using (StreamWriter sw = new StreamWriter(sourceFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(sourceFile, true))
                     sw.Write("This is a source temp file.");
 
-                using (StreamWriter sw = new StreamWriter(destinationFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(destinationFile, true))
                     sw.Write("This is a destination temp file.");
 
                 ITaskItem[] sourceFiles = new ITaskItem[] { new TaskItem(sourceFile) };
@@ -362,7 +362,7 @@ namespace Microsoft.Build.UnitTests
                 Assert.False(File.Exists(sourceFile)); // "Source file should be gone"
 
                 string destinationFileContents;
-                using (StreamReader sr = new StreamReader(destinationFile))
+                using (StreamReader sr = FileUtilities.OpenRead(destinationFile))
                     destinationFileContents = sr.ReadToEnd();
 
                 Assert.Equal(destinationFileContents, "This is a source temp file."); //                     "Expected the destination file to contain the contents of source file."
@@ -381,6 +381,7 @@ namespace Microsoft.Build.UnitTests
         /// (or skipped), not files for which there was an error.
         /// </summary>
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)] // "Under Unix all filenames are valid and this test is not useful"
         public void OutputsOnlyIncludeSuccessfulMoves()
         {
             string temp = Path.GetTempPath();
@@ -401,8 +402,8 @@ namespace Microsoft.Build.UnitTests
                 }
                 finally
                 {
-                    fs.Close();
-                    fs2.Close();
+                    fs.Dispose();
+                    fs2.Dispose();
                 }
 
                 Move t = new Move();
@@ -460,6 +461,7 @@ namespace Microsoft.Build.UnitTests
         /// Moving a locked file will fail
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void MoveLockedFile()
         {
             string file = null;
@@ -470,7 +472,7 @@ namespace Microsoft.Build.UnitTests
                 bool result;
                 Move move = null;
 
-                using (StreamWriter writer = new StreamWriter(file)) // lock it for write
+                using (StreamWriter writer = FileUtilities.OpenWrite(file, false)) // lock it for write
                 {
                     move = new Move();
                     move.BuildEngine = new MockEngine(true /* log to console */);
@@ -497,7 +499,7 @@ namespace Microsoft.Build.UnitTests
         {
             Move move = new Move();
             move.BuildEngine = new MockEngine();
-            move.SourceFiles = new ITaskItem[] { new TaskItem(Assembly.GetExecutingAssembly().Location) };
+            move.SourceFiles = new ITaskItem[] { new TaskItem("source") };
 
             Assert.Equal(false, move.Execute());
             ((MockEngine)move.BuildEngine).AssertLogContains("MSB3679");
@@ -511,7 +513,7 @@ namespace Microsoft.Build.UnitTests
         {
             Move move = new Move();
             move.BuildEngine = new MockEngine();
-            move.SourceFiles = new ITaskItem[] { new TaskItem(Assembly.GetExecutingAssembly().Location) };
+            move.SourceFiles = new ITaskItem[] { new TaskItem("source") };
             move.DestinationFiles = new ITaskItem[] { new TaskItem("x") };
             move.DestinationFolder = new TaskItem(Directory.GetCurrentDirectory());
 
@@ -527,7 +529,7 @@ namespace Microsoft.Build.UnitTests
         {
             Move move = new Move();
             move.BuildEngine = new MockEngine();
-            move.SourceFiles = new ITaskItem[] { new TaskItem(Assembly.GetExecutingAssembly().Location) };
+            move.SourceFiles = new ITaskItem[] { new TaskItem("source") };
             move.DestinationFiles = new ITaskItem[] { new TaskItem(Directory.GetCurrentDirectory()) };
 
             Assert.Equal(false, move.Execute());
@@ -542,7 +544,7 @@ namespace Microsoft.Build.UnitTests
         {
             Move move = new Move();
             move.BuildEngine = new MockEngine();
-            move.DestinationFiles = new ITaskItem[] { new TaskItem(Assembly.GetExecutingAssembly().Location) };
+            move.DestinationFiles = new ITaskItem[] { new TaskItem("destination") };
             move.SourceFiles = new ITaskItem[] { new TaskItem(Directory.GetCurrentDirectory()) };
 
             Assert.Equal(false, move.Execute());
@@ -554,13 +556,9 @@ namespace Microsoft.Build.UnitTests
         /// Variation with different casing/relativeness.
         /// </summary>
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)] // "File names under Unix are case-sensitive and this test is not useful"
         public void MoveFileOnItself2()
         {
-            if (NativeMethodsShared.IsUnixLike)
-            {
-                return; // "File names under Unix are case-sensitive and this test is not useful"
-            }
-
             string currdir = Directory.GetCurrentDirectory();
             string filename = "2A333ED756AF4dc392E728D0F864A396";
             string file = Path.Combine(currdir, filename);
@@ -575,7 +573,7 @@ namespace Microsoft.Build.UnitTests
                 }
                 finally
                 {
-                    fs.Close();
+                    fs.Dispose();
                 }
 
                 Move t = new Move();
@@ -619,7 +617,7 @@ namespace Microsoft.Build.UnitTests
                 }
                 finally
                 {
-                    fs.Close();
+                    fs.Dispose();
                 }
 
                 Move t = new Move();
@@ -654,7 +652,7 @@ namespace Microsoft.Build.UnitTests
             string destFile = Path.Combine(destFolder, Path.GetFileName(sourceFile));
             try
             {
-                using (StreamWriter sw = new StreamWriter(sourceFile, true))
+                using (StreamWriter sw = FileUtilities.OpenWrite(sourceFile, true))
                     sw.Write("This is a source temp file.");
 
                 // Don't create the dest folder, let task do that
@@ -673,7 +671,7 @@ namespace Microsoft.Build.UnitTests
                 Assert.True(File.Exists(destFile)); // "destination exists"
 
                 string destinationFileContents;
-                using (StreamReader sr = new StreamReader(destFile))
+                using (StreamReader sr = FileUtilities.OpenRead(destFile))
                     destinationFileContents = sr.ReadToEnd();
 
                 Assert.Equal(destinationFileContents, "This is a source temp file."); //                     "Expected the destination file to contain the contents of source file."
@@ -687,7 +685,7 @@ namespace Microsoft.Build.UnitTests
             {
                 File.Delete(sourceFile);
                 File.Delete(destFile);
-                Directory.Delete(destFolder);
+                FileUtilities.DeleteWithoutTrailingBackslash(destFolder);
             }
         }
 
@@ -716,8 +714,8 @@ namespace Microsoft.Build.UnitTests
                 }
                 finally
                 {
-                    fs.Close();
-                    fs2.Close();
+                    fs.Dispose();
+                    fs2.Dispose();
                 }
 
                 Move t = new Move();
@@ -754,7 +752,7 @@ namespace Microsoft.Build.UnitTests
 
             try
             {
-                using (StreamWriter sw = new StreamWriter(sourceFile, true))    // HIGHCHAR: Test writes in UTF8 without preamble.
+                using (StreamWriter sw = FileUtilities.OpenWrite(sourceFile, true))    // HIGHCHAR: Test writes in UTF8 without preamble.
                     sw.Write("This is a source temp file.");
 
                 ITaskItem[] sourceFiles = new ITaskItem[] { new TaskItem(sourceFile) };

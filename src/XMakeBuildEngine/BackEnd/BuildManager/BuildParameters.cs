@@ -12,6 +12,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Globalization;
@@ -138,7 +139,11 @@ namespace Microsoft.Build.Execution
         /// Flag indicating whether node reuse should be enabled.
         /// By default, it is enabled.
         /// </summary>
+#if FEATURE_NODE_REUSE
         private bool _enableNodeReuse = true;
+#else
+        private bool _enableNodeReuse = false;
+#endif
 
         /// <summary>
         /// The original process environment.
@@ -198,7 +203,7 @@ namespace Microsoft.Build.Execution
         /// <summary>
         /// The location of the toolset definitions.
         /// </summary>
-        private ToolsetDefinitionLocations _toolsetDefinitionLocations = ToolsetDefinitionLocations.ConfigurationFile | ToolsetDefinitionLocations.Registry;
+        private ToolsetDefinitionLocations _toolsetDefinitionLocations = ToolsetDefinitionLocations.Default;
 
         /// <summary>
         /// The UI culture.
@@ -1008,7 +1013,7 @@ namespace Microsoft.Build.Execution
 #if FEATURE_APPDOMAIN
             path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MSBuild.exe");
 #else
-            path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+            path = Path.GetDirectoryName(typeof(BuildParameters).GetTypeInfo().Assembly.Location);
 #endif
             if (path != null && CheckMSBuildExeExistsAt(path))
             {

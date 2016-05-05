@@ -280,7 +280,7 @@ namespace Microsoft.Build.UnitTests
             Assert.True(unquoteParameters);
         }
 
-#if !MONO
+#if FEATURE_NODE_REUSE
         [Fact]
         public void NodeReuseParametersIdentificationTests()
         {
@@ -600,7 +600,6 @@ namespace Microsoft.Build.UnitTests
             Assert.Null(duplicateSwitchErrorMessage);
         }
 
-#if !MONO && FEATURE_APPDOMAIN
         [Fact]
         public void MaxCPUCountSwitchIdentificationTests()
         {
@@ -638,7 +637,6 @@ namespace Microsoft.Build.UnitTests
             Assert.NotNull(missingParametersErrorMessage);
             Assert.True(unquoteParameters);
         }
-#endif
 
 #if FEATURE_XML_SCHEMA_VALIDATION
         [Fact]
@@ -1077,22 +1075,22 @@ namespace Microsoft.Build.UnitTests
                     ProjectRootElement project = ProjectRootElement.Create();
                     project.Save(filename);
                     MSBuildApp.BuildProject(
-                                                                filename,
-                                                                null,
-                                                                "ScoobyDoo",
-                                                                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                                                                new ILogger[] { },
-                                                                LoggerVerbosity.Normal,
-                                                                new DistributedLoggerRecord[] { },
+                                        filename,
+                                        null,
+                                        "ScoobyDoo",
+                                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                                        new ILogger[] { },
+                                        LoggerVerbosity.Normal,
+                                        new DistributedLoggerRecord[] { },
 #if FEATURE_XML_SCHEMA_VALIDATION
                                         false,
-                                                                null,
+                                        null,
 #endif
                                         1,
-                                                                true,
-                                                                new StringWriter(),
-                                                                false,
-                                                                false);
+                                        true,
+                                        new StringWriter(),
+                                        false,
+                                        false);
                 }
                 finally
                 {
@@ -1117,6 +1115,7 @@ namespace Microsoft.Build.UnitTests
             Assert.True(switches.HaveAnySwitchesBeenSet());
         }
 
+#if FEATURE_NODE_REUSE
         /// <summary>
         /// /nodereuse:false /nodereuse:true should result in "true"
         /// </summary>
@@ -1138,6 +1137,7 @@ namespace Microsoft.Build.UnitTests
 
             Assert.Equal(false, nodeReuse);
         }
+#endif
 
         /// <summary>
         /// Regress DDB #143341: 

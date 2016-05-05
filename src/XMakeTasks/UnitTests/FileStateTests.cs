@@ -42,16 +42,16 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)] // On Unix there no invalid file name characters
         public void BadChars()
         {
-            Assert.Throws<ArgumentException>(() =>
-            {
-                var state = new FileState("|");
-                var time = state.LastWriteTime;
-            }
-           );
+            var state = new FileState("|");
+            Assert.Throws<ArgumentException>(() => { var time = state.LastWriteTime; });
         }
+
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void BadTooLongLastWriteTime()
         {
             Helpers.VerifyAssertThrowsSameWay(
@@ -162,6 +162,7 @@ namespace Microsoft.Build.UnitTests
             }
         }
 
+#if FEATURE_SPECIAL_FOLDERS
         [Fact]
         public void AccessDenied()
         {
@@ -182,6 +183,7 @@ namespace Microsoft.Build.UnitTests
             Assert.Equal(info.LastWriteTime, state.LastWriteTime);
             Assert.Equal(info.LastWriteTimeUtc, state.LastWriteTimeUtcFast);
         }
+#endif
 
 #if CHECKING4GBFILESWORK
         [Test]
@@ -286,6 +288,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void LastWriteTimeReset()
         {
             string file = null;
@@ -312,6 +315,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void LastWriteTimeUtcReset()
         {
             string file = null;
@@ -338,6 +342,8 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void LengthReset()
         {
             string file = null;
@@ -393,6 +399,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void ReadOnlyOnDirectory()
         {
             Assert.Equal(new FileInfo(Path.GetTempPath()).IsReadOnly, new FileState(Path.GetTempPath()).IsReadOnly);
@@ -417,6 +424,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void DoesNotExistLastWriteTime()
         {
             string file = Guid.NewGuid().ToString("N");
@@ -425,6 +433,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void DoesNotExistLastWriteTimeUtc()
         {
             string file = Guid.NewGuid().ToString("N");

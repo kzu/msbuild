@@ -47,12 +47,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release-MONO|x64'">
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="..\Shared\Compat\SafeHandleZeroOrMinusOneIsInvalid.cs">
-      <Link>Compat\SafeHandleZeroOrMinusOneIsInvalid.cs</Link>
-    </Compile>
+  <ItemGroup Condition="$(TargetFrameworkIdentifier) != '.NETFramework'">
     <Compile Include="..\Shared\Compat\SerializableAttribute.cs">
       <Link>Compat\SerializableAttribute.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Condition="'$(NetCoreBuild)' == 'true'" Include="..\Shared\Compat\SafeHandleZeroOrMinusOneIsInvalid.cs">
+      <Link>Compat\SafeHandleZeroOrMinusOneIsInvalid.cs</Link>
     </Compile>
     <Compile Include="..\Shared\FxCopExclusions\Microsoft.Build.Shared.Suppressions.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
@@ -100,6 +102,8 @@
     </Compile>
     <Compile Include="..\Shared\CopyOnWriteDictionary.cs" />
     <Compile Include="..\Shared\HybridDictionary.cs" />
+    <Compile Include="..\Shared\IKeyed.cs" />
+    <Compile Include="..\Shared\MSBuildNameIgnoreCaseComparer.cs" />
     <Compile Include="..\Shared\ReadOnlyEmptyCollection.cs" />
     <Compile Include="..\Shared\ReadOnlyEmptyDictionary.cs" />
     <Compile Include="..\Shared\ReadOnlyEmptyList.cs" />
@@ -118,7 +122,7 @@
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
     <Compile Include="..\Shared\INodeEndpoint.cs" />
-    <Compile Include="..\Shared\NodeEndpointOutOfProcBase.cs" Condition="$(FeatureAppDomain) == 'true'" />
+    <Compile Include="..\Shared\NodeEndpointOutOfProcBase.cs" />
     <Compile Include="..\Shared\INodePacket.cs" />
     <Compile Include="..\Shared\LogMessagePacketBase.cs" />
     <Compile Include="..\Shared\INodePacketFactory.cs" />
@@ -146,7 +150,7 @@
     <Compile Include="..\Shared\NodeShutdown.cs" />
     <Compile Include="..\Shared\TaskParameter.cs" />
     <Compile Include="..\Shared\TaskParameterTypeVerifier.cs" />
-    <Compile Include="..\Shared\TaskEngineAssemblyResolver.cs" Condition="$(FeatureAppDomain) == 'true'">
+    <Compile Include="..\Shared\TaskEngineAssemblyResolver.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
     <Compile Include="..\Shared\AssemblyNameExtension.cs">
@@ -168,6 +172,7 @@
     <Compile Include="CommandLineSwitchException.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
+    <Compile Include="..\Shared\CoreCLRAssemblyLoader.cs" Condition="'$(NetCoreBuild)'=='true'" />
     <Compile Include="DistributedLoggerRecord.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
@@ -177,14 +182,14 @@
     <Compile Include="InitializationException.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
-    <Compile Include="NodeEndpointOutOfProcTaskHost.cs" Condition="$(FeatureAppDomain) == 'true'" />
+    <Compile Include="NodeEndpointOutOfProcTaskHost.cs" />
     <Compile Include="LogMessagePacket.cs" />
     <Compile Include="ProjectSchemaValidationHandler.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>
-    <Compile Include="OutOfProcTaskHostNode.cs" Condition="$(FeatureAppDomain) == 'true'" />
-    <Compile Include="OutOfProcTaskAppDomainWrapperBase.cs" Condition="$(FeatureAppDomain) == 'true'" />
-    <Compile Include="OutOfProcTaskAppDomainWrapper.cs" Condition="$(FeatureAppDomain) == 'true'" />
+    <Compile Include="OutOfProcTaskHostNode.cs" />
+    <Compile Include="OutOfProcTaskAppDomainWrapperBase.cs" />
+    <Compile Include="OutOfProcTaskAppDomainWrapper.cs" />
     <Compile Include="XMake.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>

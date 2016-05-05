@@ -3,14 +3,18 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Xml;
 
 using Microsoft.Build.Shared;
+#if FEATURE_WIN32_REGISTRY
 using Microsoft.Win32;
+#endif
 
 using FrameworkNameVersioning = System.Runtime.Versioning.FrameworkName;
 using UtilitiesDotNetFrameworkArchitecture = Microsoft.Build.Utilities.DotNetFrameworkArchitecture;
@@ -194,6 +198,11 @@ namespace Microsoft.Build.Utilities
         /// </summary>
         private static List<string> s_targetFrameworkMonikers = null;
 
+        /// <summary>
+        /// List of fallback paths where to look for Target frameworks
+        /// </summary>
+        private static Lazy<ReadOnlyCollection<string>> s_fallbackTargetFrameworkRootPathsLazy = new Lazy<ReadOnlyCollection<string>>(() => GetFallbackTargetFrameworkRootPaths(), isThreadSafe:true);
+
         private const string retailConfigurationName = "Retail";
         private const string neutralArchitectureName = "Neutral";
         private const string commonConfigurationFolderName = "CommonConfiguration";
@@ -224,6 +233,7 @@ namespace Microsoft.Build.Utilities
             }
         }
 
+#if FEATURE_WIN32_REGISTRY
         /// <summary>
         /// Get a sorted list of AssemblyFoldersExInfo which contain information about what directories the 3rd party assemblies are registered under for use during build and design time.
         /// 
@@ -254,10 +264,12 @@ namespace Microsoft.Build.Utilities
 
             AssemblyFoldersEx assemblyFoldersEx = new AssemblyFoldersEx(registryRoot, targetFrameworkVersion, registryKeySuffix, osVersion, platform, new GetRegistrySubKeyNames(RegistryHelper.GetSubKeyNames), new GetRegistrySubKeyDefaultValue(RegistryHelper.GetDefaultValue), targetProcessorArchitecture, new OpenBaseKey(RegistryHelper.OpenBaseKey));
 
+
             List<AssemblyFoldersExInfo> assemblyFolders = new List<AssemblyFoldersExInfo>();
             assemblyFolders.AddRange(assemblyFoldersEx);
             return assemblyFolders;
         }
+#endif
 
         /// <summary>
         /// Get a list of SDK's installed on the machine for a given target platform
@@ -1574,6 +1586,21 @@ namespace Microsoft.Build.Utilities
         /// <returns>Collection of reference assembly locations.</returns>
         public static string GetPathToStandardLibraries(string targetFrameworkIdentifier, string targetFrameworkVersion, string targetFrameworkProfile, string platformTarget)
         {
+            return GetPathToStandardLibraries(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile, platformTarget, null);
+        }
+
+        /// <summary>
+        /// Returns the path to mscorlib and system.dll
+        /// </summary>
+        /// <param name="targetFrameworkIdentifier">Identifier being targeted</param>
+        /// <param name="targetFrameworkVersion">Version being targeted</param>
+        /// <param name="targetFrameworkProfile">Profile being targeted</param>
+        /// <param name="platformTarget">What is the targeted platform, this is used to determine where we should look for the standard libraries. Note, this parameter is only used for .net frameworks less than 4.0</param>
+        /// <param name="targetFrameworkRootPath">Root directory where the target framework will be looked for. Uses default path if this is null</param>
+        /// <exception cref="ArgumentNullException">When the frameworkName is null</exception>
+        /// <returns>Collection of reference assembly locations.</returns>
+        internal static string GetPathToStandardLibraries(string targetFrameworkIdentifier, string targetFrameworkVersion, string targetFrameworkProfile, string platformTarget, string targetFrameworkRootPath)
+        {
             ErrorUtilities.VerifyThrowArgumentLength(targetFrameworkIdentifier, "targetFrameworkIdentifier");
             ErrorUtilities.VerifyThrowArgumentLength(targetFrameworkVersion, "targetFrameworkVersion");
 
@@ -1609,7 +1636,7 @@ namespace Microsoft.Build.Utilities
                 // location, if so then we can just use what ever version they passed in because it should be MSIL now and not bit specific.
             }
 
-            IList<string> referenceAssemblyDirectories = GetPathToReferenceAssemblies(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile);
+            IList<string> referenceAssemblyDirectories = GetPathToReferenceAssemblies(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile, targetFrameworkRootPath);
             // Check each returned reference assembly directory for one containing mscorlib.dll
             // When we find it (most of the time it will be the first in the set) we'll
             // return that directory.
@@ -1640,13 +1667,35 @@ namespace Microsoft.Build.Utilities
         /// <returns>Collection of reference assembly locations.</returns>
         public static IList<String> GetPathToReferenceAssemblies(string targetFrameworkIdentifier, string targetFrameworkVersion, string targetFrameworkProfile)
         {
+            return GetPathToReferenceAssemblies(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile, null);
+        }
+
+        /// <summary>
+        /// Returns the paths to the reference assemblies location for the given target framework.
+        /// This method will assume the requested ReferenceAssemblyRoot path will be the ProgramFiles directory specified by Environment.SpecialFolder.ProgramFiles
+        /// In additon when the .NETFramework or .NET Framework targetFrameworkIdentifiers are seen and targetFrameworkVersion is 2.0, 3.0, 3.5 or 4.0 we will return the correctly chained reference assembly paths
+        /// for the legacy .net frameworks. This chaining will use the existing GetPathToDotNetFrameworkReferenceAssemblies to build up the list of reference assembly paths.
+        /// </summary>
+        /// <param name="targetFrameworkIdentifier">Identifier being targeted</param>
+        /// <param name="targetFrameworkVersion">Version being targeted</param>
+        /// <param name="targetFrameworkProfile">Profile being targeted</param>
+        /// <param name="targetFrameworkRootPath">Root directory which will be used to calculate the reference assembly path. The references assemblies will be
+        /// generated in the following way TargetFrameworkRootPath\TargetFrameworkIdentifier\TargetFrameworkVersion\SubType\TargetFrameworkSubType.
+        /// Uses the default path if this is null.
+        /// </param>
+        /// <exception cref="ArgumentNullException">When the frameworkName is null</exception>
+        /// <returns>Collection of reference assembly locations.</returns>
+        internal static IList<String> GetPathToReferenceAssemblies(string targetFrameworkIdentifier, string targetFrameworkVersion, string targetFrameworkProfile, string targetFrameworkRootPath)
+        {
             ErrorUtilities.VerifyThrowArgumentLength(targetFrameworkVersion, "targetFrameworkVersion");
             ErrorUtilities.VerifyThrowArgumentLength(targetFrameworkIdentifier, "targetFrameworkIdentifier");
             ErrorUtilities.VerifyThrowArgumentNull(targetFrameworkProfile, "targetFrameworkProfile");
 
             Version frameworkVersion = ConvertTargetFrameworkVersionToVersion(targetFrameworkVersion);
             FrameworkNameVersioning targetFrameworkName = new FrameworkNameVersioning(targetFrameworkIdentifier, frameworkVersion, targetFrameworkProfile);
-            return GetPathToReferenceAssemblies(targetFrameworkName);
+            if (String.IsNullOrEmpty(targetFrameworkRootPath))
+                targetFrameworkRootPath = FrameworkLocationHelper.programFilesReferenceAssemblyLocation;
+            return GetPathToReferenceAssemblies(targetFrameworkRootPath, targetFrameworkName);
         }
 
 
@@ -1890,6 +1939,12 @@ namespace Microsoft.Build.Utilities
         /// <summary>
         /// Returns the paths to the reference assemblies location for the given framework version relative to a given targetFrameworkRoot.
         /// The method will not check to see if the path exists or not.
+        ///
+        /// To find the given framework, it looks through various paths, which are (in order):
+        ///
+        /// 1. @targetFrameworkRootPath parameter
+        /// 2. Any fallback paths specified in the app.config as a property named `TargetFrameworkRootPathSearchPaths$(OSName)`
+        ///
         /// </summary>
         /// <param name="targetFrameworkRootPath">Root directory which will be used to calculate the reference assembly path. The references assemblies will be
         /// generated in the following way TargetFrameworkRootPath\TargetFrameworkIdentifier\TargetFrameworkVersion\SubType\TargetFrameworkSubType.
@@ -1903,6 +1958,32 @@ namespace Microsoft.Build.Utilities
             //Verify the framework class passed in is not null. Other than being null the class will ensure it is consistent and the internal state is correct
             ErrorUtilities.VerifyThrowArgumentNull(frameworkName, "frameworkName");
 
+            var searchPaths = new List<string>(s_fallbackTargetFrameworkRootPathsLazy.Value);
+            searchPaths.Insert(0, targetFrameworkRootPath);
+
+            foreach (var path in searchPaths)
+            {
+                var asmList = GetPathToReferenceAssembliesActual(path, frameworkName);
+                if (asmList.Count > 0)
+                {
+                    return asmList;
+                }
+            }
+
+            return new List<string>();
+        }
+
+        /// <summary>
+        /// Returns the paths to the reference assemblies location for the given framework version relative to a given targetFrameworkRoot.
+        /// The method will not check to see if the path exists or not.
+        /// </summary>
+        /// <param name="targetFrameworkRootPath">Root directory which will be used to calculate the reference assembly path. The references assemblies will be
+        /// generated in the following way TargetFrameworkRootPath\TargetFrameworkIdentifier\TargetFrameworkVersion\SubType\TargetFrameworkSubType.
+        /// </param>
+        /// <param name="frameworkName">A frameworkName class which represents a TargetFrameworkMoniker. This cannot be null.</param>
+        /// <returns>Collection of reference assembly locations.</returns>
+        private static IList<String> GetPathToReferenceAssembliesActual(string targetFrameworkRootPath, FrameworkNameVersioning frameworkName)
+        {
             string referenceAssemblyCacheKey = GenerateReferenceAssemblyCacheKey(targetFrameworkRootPath, frameworkName);
             CreateReferenceAssemblyPathsCache();
 
@@ -1953,6 +2034,37 @@ namespace Microsoft.Build.Utilities
             }
 
             return dotNetFrameworkReferenceAssemblies;
+        }
+
+        private static ReadOnlyCollection<string> GetFallbackTargetFrameworkRootPaths()
+        {
+            //
+            // - We need to read the fallback paths from the Toolset defined in app.config .
+            // - ToolsetElement is a source file shared by Microsoft.Build and Microsoft.Build.Utilities.Core
+            //
+            // - If we try to read the toolset from the config file, like:
+            //      var msbuildSection = configuration.GetSection("msbuildToolsets")
+            //   then `msbuildSection` has a type `Microsoft.Build::Microsoft.Build.Evaluation.ToolsetConfigurationSection`,
+            //   since that is the type specified in the config file as:
+            //
+            //   <section name="msbuildToolsets" type="Microsoft.Build.Evaluation.ToolsetConfigurationSection, Microsoft.Build, Version=14.1.0.0, Culture=neutral" />
+            //
+            //   To be able to extract the relevant property from this `ToolsetConfigurationSection`, we would need to
+            //   cast it to a concrete type like:
+            //
+            //      var toolsetConfigSection = (ToolsetConfigurationSection) configuration.GetSection("msbuildToolsets")
+            //
+            //   but this will fail since, the `(ToolsetConfigurationSection)` has the assembly identity of `Microsoft.Build.Utilities.Core`,
+            //   since this code is in that assembly (this file!).
+            //
+            //   Also, since these types are internal, using `extern alias` won't really help here.
+            //   So, we use reflection. This method should really get called only once, so, it shouldn't matter
+            //   for performance.
+            //
+            Assembly buildAsm = Assembly.Load("Microsoft.Build");
+            var type = buildAsm.GetType("Microsoft.Build.Shared.FrameworkLocationHelper");
+            var mi = type.GetMethod("GetTargetFrameworkRootFallbackPaths", BindingFlags.NonPublic | BindingFlags.Static);
+            return new ReadOnlyCollection<string>((IList<string>)mi.Invoke(null, new object[] { CurrentToolsVersion } ));
         }
 
         /// <summary>
@@ -2212,10 +2324,12 @@ namespace Microsoft.Build.Utilities
                     Dictionary<TargetPlatformSDK, TargetPlatformSDK> monikers = new Dictionary<TargetPlatformSDK, TargetPlatformSDK>();
                     GatherSDKListFromDirectory(sdkDiskRoots, monikers);
 
+#if FEATURE_REGISTRY_SDKS
                     if (NativeMethodsShared.IsWindows)
                     {
                         GatherSDKListFromRegistry(registryRoot, monikers);
                     }
+#endif
 
                     collection = monikers.Keys.ToList();
                     s_cachedTargetPlatforms.Add(cachedTargetPlatformsKey, collection);
@@ -2298,14 +2412,14 @@ namespace Microsoft.Build.Utilities
                         if (!targetPlatformSDK.ExtensionSDKs.ContainsKey(SDKKey))
                         {
                             ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "SDKKey '{0}' was not already found.", SDKKey);
-                            string pathToSDKManifest = Path.Combine(sdkVersionDirectory.FullName, "sdkManifest.xml");
+                            string pathToSDKManifest = Path.Combine(sdkVersionDirectory.FullName, "SDKManifest.xml");
                             if (FileUtilities.FileExistsNoThrow(pathToSDKManifest))
                             {
                                 targetPlatformSDK.ExtensionSDKs.Add(SDKKey, FileUtilities.EnsureTrailingSlash(sdkVersionDirectory.FullName));
                             }
                             else
                             {
-                                ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "No sdkManifest.xml files could be found at '{0}'. Not adding sdk", pathToSDKManifest);
+                                ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "No SDKManifest.xml files could be found at '{0}'. Not adding sdk", pathToSDKManifest);
                             }
                         }
                         else
@@ -2414,6 +2528,7 @@ namespace Microsoft.Build.Utilities
             }
         }
 
+#if FEATURE_REGISTRY_SDKS
         /// <summary>
         /// Given a registry location enumerate the registry and find the installed SDKs.
         /// </summary>
@@ -2632,6 +2747,7 @@ namespace Microsoft.Build.Utilities
                 GatherSDKsFromRegistryImpl(platformMonikers, registryRoot, RegistryView.Default, RegistryHive.LocalMachine, getSubkeyNames, getRegistrySubKeyDefaultValue, openBaseKey, fileExists);
             }
         }
+#endif
 
         /// <summary>
         /// Get the disk locations to search for sdks under. This can be overridden by an environment variable
@@ -2735,7 +2851,7 @@ namespace Microsoft.Build.Utilities
         }
 
         /// <summary>
-        /// Get the registry root to find sdks under. The registry can be disabled if we are in a checked in sceario
+        /// Get the registry root to find sdks under. The registry can be disabled if we are in a checked in scenario
         /// </summary>
         /// <returns></returns>
         private static string GetTargetPlatformMonikerRegistryRoots(string registryRootLocation)
@@ -3166,12 +3282,6 @@ namespace Microsoft.Build.Utilities
         /// <returns></returns>
         internal static string ConvertDotNetFrameworkArchitectureToProcessorArchitecture(DotNetFrameworkArchitecture architecture)
         {
-            // TODO: Find real architecture on Unix
-            if (NativeMethodsShared.IsUnixLike)
-            {
-                return ProcessorArchitecture.X86;
-            }
-
             switch (architecture)
             {
                 case DotNetFrameworkArchitecture.Bitness32:
@@ -3182,20 +3292,17 @@ namespace Microsoft.Build.Utilities
                     return ProcessorArchitecture.X86;
                 case DotNetFrameworkArchitecture.Bitness64:
                     // We need to know which 64-bit architecture we're on.
-                    NativeMethodsShared.SYSTEM_INFO systemInfo = new NativeMethodsShared.SYSTEM_INFO();
-                    NativeMethodsShared.GetNativeSystemInfo(ref systemInfo);
-
-                    switch (systemInfo.wProcessorArchitecture)
+                    switch (NativeMethodsShared.ProcessorArchitectureNative)
                     {
-                        case NativeMethodsShared.PROCESSOR_ARCHITECTURE_AMD64:
+                        case NativeMethodsShared.ProcessorArchitectures.X64:
                             return ProcessorArchitecture.AMD64;
-                        case NativeMethodsShared.PROCESSOR_ARCHITECTURE_IA64:
+                        case NativeMethodsShared.ProcessorArchitectures.IA64:
                             return ProcessorArchitecture.IA64;
-                        // Errr, OK, we're trying to get the 64-bit path on a 32-bit machine.  
+                        // Error, OK, we're trying to get the 64-bit path on a 32-bit machine.
                         // That ... doesn't make sense. 
-                        case NativeMethodsShared.PROCESSOR_ARCHITECTURE_INTEL:
+                        case NativeMethodsShared.ProcessorArchitectures.X86:
                             return null;
-                        case NativeMethodsShared.PROCESSOR_ARCHITECTURE_ARM:
+                        case NativeMethodsShared.ProcessorArchitectures.ARM:
                             return null;
                         // unknown architecture? return null
                         default:

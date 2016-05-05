@@ -8,12 +8,11 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-#if FEATURE_ASSEMBLY_LOCATION
 using System.Reflection;
-#endif
 using Microsoft.Win32.SafeHandles;
 
 namespace Microsoft.Build.Shared
@@ -145,6 +144,27 @@ namespace Microsoft.Build.Shared
             COWAIT_ALERTABLE = 0x00000002
         }
 
+        /// <summary>
+        /// Processor architecture values
+        /// </summary>
+        internal enum ProcessorArchitectures
+        {
+            // Intel 32 bit
+            X86,
+
+            // AMD64 64 bit
+            X64,
+
+            // Itanium 64
+            IA64,
+
+            // ARM
+            ARM,
+
+            // Who knows
+            Unknown
+        }
+
         #endregion
 
         #region Structs
@@ -183,7 +203,6 @@ namespace Microsoft.Build.Shared
             private SafeProcessHandle() : base(true)
             {
             }
-
             protected override bool ReleaseHandle()
             {
                 return CloseHandle(handle);
@@ -310,6 +329,117 @@ namespace Microsoft.Build.Shared
             public bool bInheritHandle;
         }
 
+        private class SystemInformationData
+        {
+            /// <summary>
+            /// Architecture as far as the current process is concerned.
+            /// It's x86 in wow64 (native architecture is x64 in that case).
+            /// Otherwise it's the same as the native architecture.
+            /// </summary>
+            public readonly ProcessorArchitectures ProcessorArchitectureType;
+
+            /// <summary>
+            /// Actual architecture of the the system.
+            /// </summary>
+            public readonly ProcessorArchitectures ProcessorArchitectureTypeNative;
+
+            /// <summary>
+            /// Convert SYSTEM_INFO architecture values to the internal enum
+            /// </summary>
+            /// <param name="arch"></param>
+            /// <returns></returns>
+            private static ProcessorArchitectures ConvertSystemArchitecture(ushort arch)
+            {
+                switch (arch)
+                {
+                    case PROCESSOR_ARCHITECTURE_INTEL:
+                        return ProcessorArchitectures.X86;
+                    case PROCESSOR_ARCHITECTURE_AMD64:
+                        return ProcessorArchitectures.X64;
+                    case PROCESSOR_ARCHITECTURE_ARM:
+                        return ProcessorArchitectures.ARM;
+                    case PROCESSOR_ARCHITECTURE_IA64:
+                        return ProcessorArchitectures.IA64;
+                    default:
+                        return ProcessorArchitectures.Unknown;
+                }
+            }
+
+            /// <summary>
+            /// Read system info values
+            /// </summary>
+            public SystemInformationData()
+            {
+                ProcessorArchitectureType = ProcessorArchitectures.Unknown;
+                ProcessorArchitectureTypeNative = ProcessorArchitectures.Unknown;
+
+                if (IsWindows)
+                {
+                    var systemInfo = new SYSTEM_INFO();
+
+                    GetSystemInfo(ref systemInfo);
+                    ProcessorArchitectureType = ConvertSystemArchitecture(systemInfo.wProcessorArchitecture);
+
+                    GetNativeSystemInfo(ref systemInfo);
+                    ProcessorArchitectureTypeNative = ConvertSystemArchitecture(systemInfo.wProcessorArchitecture);
+                }
+                else
+                {
+                    try
+                    {
+                        // On Unix run 'uname -m' to get the architecture. It's common for Linux and Mac
+                        using (
+                            var proc =
+                                Process.Start(
+                                    new ProcessStartInfo("uname")
+                                    {
+                                        Arguments = "-m",
+                                        UseShellExecute = false,
+                                        RedirectStandardOutput = true,
+                                        CreateNoWindow = true
+                                    }))
+                        {
+                            string arch = null;
+                            if (proc != null)
+                            {
+                                // Since uname -m simply returns kernel property, it should be quick.
+                                // 1 second is the best guess for a safe timeout.
+                                proc.WaitForExit(1000);
+                                arch = proc.StandardOutput.ReadLine();
+                            }
+
+                            if (!string.IsNullOrEmpty(arch))
+                            {
+                                if (arch.StartsWith("x86_64", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    ProcessorArchitectureType = ProcessorArchitectures.X64;
+                                }
+                                else if (arch.StartsWith("ia64", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    ProcessorArchitectureType = ProcessorArchitectures.IA64;
+                                }
+                                else if (arch.StartsWith("arm", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    ProcessorArchitectureType = ProcessorArchitectures.ARM;
+                                }
+                                else if (arch.StartsWith("i", StringComparison.OrdinalIgnoreCase)
+                                         && arch.EndsWith("86", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    ProcessorArchitectureType = ProcessorArchitectures.X86;
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        ProcessorArchitectureType = ProcessorArchitectures.Unknown;
+                    }
+
+                    ProcessorArchitectureTypeNative = ProcessorArchitectureType;
+                }
+            }
+        }
+
         #endregion
 
         #region Member data
@@ -387,7 +517,9 @@ namespace Microsoft.Build.Shared
         {
             get
             {
-#if FEATURE_OSVERSION
+#if MONO
+                return File.Exists("/usr/lib/libc.dylib");
+#elif FEATURE_OSVERSION
                 return Environment.OSVersion.Platform == PlatformID.MacOSX;
 #else
                 return RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
@@ -403,8 +535,17 @@ namespace Microsoft.Build.Shared
         {
             get
             {
-                return IsUnix ? "Unix" : (IsOSX ? "OSX" : "Windows_NT");
+                return IsWindows ? "Windows_NT" : "Unix";
             }
+        }
+
+        /// <summary>
+        /// OS name that can be used for the msbuildExtensionsPathSearchPaths element
+        /// for a toolset
+        /// </summary>
+        internal static string GetOSNameForExtensionsPath()
+        {
+            return IsOSX ? "osx" : (IsUnix ? "unix" : "windows");
         }
 
         /// <summary>
@@ -418,11 +559,6 @@ namespace Microsoft.Build.Shared
         private static string s_frameworkCurrentPath;
 
         /// <summary>
-        /// The regex for matching Mono framework paths
-        /// </summary>
-        private static Regex s_frameworkPathRegex;
-
-        /// <summary>
         /// Gets the currently running framework path
         /// </summary>
         internal static string FrameworkCurrentPath
@@ -431,16 +567,9 @@ namespace Microsoft.Build.Shared
             {
                 if (s_frameworkCurrentPath == null)
                 {
-#if FEATURE_ASSEMBLY_LOCATION
                     s_frameworkCurrentPath =
                         Path.GetDirectoryName(typeof(string).GetTypeInfo().Assembly.Location)
                         ?? string.Empty;
-#else
-                    //  There isn't really a concept of a framework path on .NET Core.  Try using the app folder
-                    s_frameworkCurrentPath =
-                        Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName)
-                        ?? string.Empty;
-#endif
                 }
 
                 return s_frameworkCurrentPath;
@@ -470,61 +599,19 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        ///  Regex for framework paths under MONO
+        /// System information, initialized when required.
         /// </summary>
-        internal static Regex FrameworkPathRegex
-        {
-            get
-            {
-                return s_frameworkPathRegex
-                       ?? (s_frameworkPathRegex =
-                           new Regex(FrameworkBasePath + @"/(?:xbuild/)?v?(\d+)\.(\d+)(?:[.\d]*/?)?(.*)?"));
-            }
-        }
+        private static readonly Lazy<SystemInformationData> SystemInformation = new Lazy<SystemInformationData>(true);
 
         /// <summary>
-        ///  Check if the path is in the framework path on Unix/Mono.
-        ///  Verify that the path in one of the version directory.
+        /// Architecture getter
         /// </summary>
-        internal static string FixFrameworkPath(string path)
-        {
-            // Only valid for Linux/Mono
-            if (!IsUnix || !IsMono)
-            {
-                return null;
-            }
+        internal static ProcessorArchitectures ProcessorArchitecture => SystemInformation.Value.ProcessorArchitectureType;
 
-            // Check if this is a framework path in the version
-            // directory.
-            Match m = FrameworkPathRegex.Match(path);
-            if (!m.Success || m.Groups.Count <= 1 ||
-                string.IsNullOrEmpty(m.Groups[1].Value) ||
-                string.IsNullOrEmpty(m.Groups[2].Value))
-            {
-                return null;
-            }
-
-            // We matched. We only care about the 2nd and 3rd captures, which tells us
-            // us the version number.
-            int majorVersion;
-            if (!int.TryParse(m.Groups[1].Value, out majorVersion))
-            {
-                return null;
-            }
-
-            // Based on the version directory, find the correct path.
-            string root = majorVersion > 4 ?
-                Path.Combine(
-                              FrameworkBasePath,
-                              "xbuild",
-                              m.Groups[1].Value + '.' + m.Groups[2].Value,
-                              "bin") :
-                Path.Combine(
-                              FrameworkBasePath,
-                              m.Groups[1].Value + '.' + m.Groups[2].Value);
-            string lastChar = path.EndsWith("/") ? "/" : "";
-            return string.IsNullOrEmpty(m.Groups[3].Value) ? root + lastChar : Path.Combine(root, m.Groups[3].Value);
-        }
+        /// <summary>
+        /// Native architecture getter
+        /// </summary>
+        internal static ProcessorArchitectures ProcessorArchitectureNative => SystemInformation.Value.ProcessorArchitectureTypeNative;
 
         #endregion
 
@@ -545,9 +632,11 @@ namespace Microsoft.Build.Shared
             return num;
         }
 
+        [SuppressMessage("Microsoft.Design", "CA1060:MovePInvokesToNativeMethodsClass", Justification = "Class name is NativeMethodsShared for increased clarity")]
         [DllImport("kernel32.dll", EntryPoint = "SetThreadErrorMode", SetLastError = true)]
         private static extern bool SetErrorMode_Win7AndNewer(int newMode, out int oldMode);
 
+        [SuppressMessage("Microsoft.Design", "CA1060:MovePInvokesToNativeMethodsClass", Justification = "Class name is NativeMethodsShared for increased clarity")]
         [DllImport("kernel32.dll", EntryPoint = "SetErrorMode", ExactSpelling = true)]
         private static extern int SetErrorMode_VistaAndOlder(int newMode);
 
@@ -559,18 +648,21 @@ namespace Microsoft.Build.Shared
         /// Really truly non pumping wait.
         /// Raw IntPtrs have to be used, because the marshaller does not support arrays of SafeHandle, only
         /// single SafeHandles.
-        /// </summary>       
+        /// </summary>
+        [SuppressMessage("Microsoft.Design", "CA1060:MovePInvokesToNativeMethodsClass", Justification = "Class name is NativeMethodsShared for increased clarity")]
         [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
         public static extern Int32 WaitForMultipleObjects(uint handle, IntPtr[] handles, bool waitAll, uint milliseconds);
 
+        [SuppressMessage("Microsoft.Design", "CA1060:MovePInvokesToNativeMethodsClass", Justification = "Class name is NativeMethodsShared for increased clarity")]
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern void GetSystemInfo(ref SYSTEM_INFO lpSystemInfo);
 
+        [SuppressMessage("Microsoft.Design", "CA1060:MovePInvokesToNativeMethodsClass", Justification = "Class name is NativeMethodsShared for increased clarity")]
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern void GetNativeSystemInfo(ref SYSTEM_INFO lpSystemInfo);
 
         /// <summary>
-        /// Get the last write time of the fullpath to a directory. If the pointed path is not a directory, or 
+        /// Get the last write time of the fullpath to a directory. If the pointed path is not a directory, or
         /// if the directory does not exist, then false is returned and fileModifiedTimeUtc is set DateTime.MinValue.
         /// </summary>
         /// <param name="fullPath">Full path to the file in the filesystem</param>
@@ -684,22 +776,27 @@ namespace Microsoft.Build.Shared
 
             return path;
         }
-#if !MONO
+
         /// <summary>
         /// Retrieves the current global memory status.
         /// </summary>
         internal static MemoryStatus GetMemoryStatus()
         {
-            MemoryStatus status = new MemoryStatus();
-            bool returnValue = NativeMethodsShared.GlobalMemoryStatusEx(status);
-            if (!returnValue)
+            if (NativeMethodsShared.IsWindows)
             {
-                return null;
+                MemoryStatus status = new MemoryStatus();
+                bool returnValue = NativeMethodsShared.GlobalMemoryStatusEx(status);
+                if (!returnValue)
+                {
+                    return null;
+                }
+
+                return status;
             }
 
-            return status;
+            return null;
         }
-#endif
+
         /// <summary>
         /// Get the last write time of the fullpath to the file. 
         /// If the file does not exist, then DateTime.MinValue is returned
@@ -918,25 +1015,56 @@ namespace Microsoft.Build.Shared
         internal static int GetParentProcessId(int processId)
         {
             int ParentID = 0;
-            SafeProcessHandle hProcess = OpenProcess(eDesiredAccess.PROCESS_QUERY_INFORMATION, false, processId);
-
-            if (!hProcess.IsInvalid)
+            if (IsUnixLike)
             {
+                string line = null;
+
                 try
                 {
-                    // UNDONE: NtQueryInformationProcess will fail if we are not elevated and other process is. Advice is to change to use ToolHelp32 API's
-                    // For now just return zero and worst case we will not kill some children.
-                    PROCESS_BASIC_INFORMATION pbi = new PROCESS_BASIC_INFORMATION();
-                    int pSize = 0;
-
-                    if (0 == NtQueryInformationProcess(hProcess, PROCESSINFOCLASS.ProcessBasicInformation, ref pbi, pbi.Size, ref pSize))
+                    // /proc/<processID>/stat returns a bunch of space separated fields. Get that string
+                    using (var r = FileUtilities.OpenRead("/proc/" + processId + "/stat"))
                     {
-                        ParentID = (int)pbi.InheritedFromUniqueProcessId;
+                        line = r.ReadLine();
                     }
                 }
-                finally
+                catch // Ignore errors since the process may have terminated
                 {
-                    hProcess.Dispose();
+                }
+
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    // One of the fields is the process name. It may contain any characters, but since it's
+                    // in parenthesis, we can finds its end by looking for the last parenthesis. After that,
+                    // there comes a space, then the second fields separated by a space is the parent id.
+                    string[] statFields = line.Substring(line.LastIndexOf(')')).Split(new[] { ' ' }, 4);
+                    if (statFields.Length >= 3)
+                    {
+                        ParentID = Int32.Parse(statFields[2]);
+                    }
+                }
+            }
+            else
+            {
+                SafeProcessHandle hProcess = OpenProcess(eDesiredAccess.PROCESS_QUERY_INFORMATION, false, processId);
+
+                if (!hProcess.IsInvalid)
+                {
+                    try
+                    {
+                        // UNDONE: NtQueryInformationProcess will fail if we are not elevated and other process is. Advice is to change to use ToolHelp32 API's
+                        // For now just return zero and worst case we will not kill some children.
+                        PROCESS_BASIC_INFORMATION pbi = new PROCESS_BASIC_INFORMATION();
+                        int pSize = 0;
+
+                        if (0 == NtQueryInformationProcess(hProcess, PROCESSINFOCLASS.ProcessBasicInformation, ref pbi, pbi.Size, ref pSize))
+                        {
+                            ParentID = (int)pbi.InheritedFromUniqueProcessId;
+                        }
+                    }
+                    finally
+                    {
+                        hProcess.Dispose();
+                    }
                 }
             }
 

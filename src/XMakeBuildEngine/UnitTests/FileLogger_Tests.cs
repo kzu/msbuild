@@ -65,9 +65,15 @@ namespace Microsoft.Build.UnitTests
                 SetUpFileLoggerAndLogMessage("logfile=" + log, new BuildMessageEventArgs("message here", null, null, MessageImportance.High));
                 VerifyFileContent(log, "message here");
 
-                // Verify no BOM (ANSI encoding)
+                
                 byte[] content = ReadRawBytes(log);
+#if FEATURE_ENCODING_DEFAULT
+                // Verify no BOM (ANSI encoding)
                 Assert.Equal((byte)109, content[0]); // 'm'
+#else
+                // Verify BOM (UTF-8 encoding)
+                Assert.Equal((byte)109, content[3]); // 'm'
+#endif
             }
             finally
             {
@@ -79,6 +85,8 @@ namespace Microsoft.Build.UnitTests
         /// Invalid file should error nicely
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
+        [Trait("Category", "mono-osx-failing")]
         public void InvalidFile()
         {
             Assert.Throws<LoggerException>(() =>
@@ -414,7 +422,7 @@ namespace Microsoft.Build.UnitTests
                 if (Directory.Exists(Path.Combine(Directory.GetCurrentDirectory(), "tempura")))
                 {
                     File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "tempura\\mylogfile1.log"));
-                    Directory.Delete(Path.Combine(Directory.GetCurrentDirectory(), "tempura"));
+                    FileUtilities.DeleteWithoutTrailingBackslash(Path.Combine(Directory.GetCurrentDirectory(), "tempura"));
                 }
                 File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "mylogfile0.log"));
                 File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "mylogfile3.log"));

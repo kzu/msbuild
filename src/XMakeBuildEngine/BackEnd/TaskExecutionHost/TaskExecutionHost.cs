@@ -185,7 +185,7 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         ~TaskExecutionHost()
         {
-            Debug.Fail("Unexpected finalization.  Dispose should already have been called.");
+            // Debug.Fail("Unexpected finalization.  Dispose should already have been called.");
             Dispose(false);
         }
 
@@ -1262,6 +1262,7 @@ namespace Microsoft.Build.BackEnd
                     }
                     else
                     {
+                        expandedParameterValue = FileUtilities.FixFilePath(expandedParameterValue);
                         success = SetValueParameter(parameter, parameterType, expandedParameterValue, parameterLocation);
                         taskParameterSet = true;
                     }

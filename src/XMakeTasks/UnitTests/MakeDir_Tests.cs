@@ -53,7 +53,7 @@ namespace Microsoft.Build.UnitTests
             }
             finally
             {
-                Directory.Delete(dir);
+                FileUtilities.DeleteWithoutTrailingBackslash(dir);
             }
         }
 
@@ -62,6 +62,7 @@ namespace Microsoft.Build.UnitTests
         /// through the input.
         /// </summary>
         [Fact]
+        [PlatformSpecific(Xunit.PlatformID.Windows)] // "Under Unix all filenames are valid and this test is not useful"
         public void SomeInputsFailToCreate()
         {
             string temp = Path.GetTempPath();
@@ -73,7 +74,7 @@ namespace Microsoft.Build.UnitTests
             try
             {
                 FileStream fs = File.Create(file);
-                fs.Close(); //we're gonna try to delete it
+                fs.Dispose(); //we're gonna try to delete it
 
                 MakeDir t = new MakeDir();
                 MockEngine engine = new MockEngine();
@@ -89,12 +90,22 @@ namespace Microsoft.Build.UnitTests
 
                 bool success = t.Execute();
 
-                Assert.False(success);
-                // Since Unix pretty much does not have invalid characters,
-                // the invalid name is not really invalid
-                Assert.Equal(NativeMethodsShared.IsWindows ? 2 : 3, t.DirectoriesCreated.Length);
+                if (NativeMethodsShared.IsWindows)
+                {
+                    Assert.False(success);
+                    Assert.Equal(2, t.DirectoriesCreated.Length);
+                    Assert.Equal(dir2, t.DirectoriesCreated[1].ItemSpec);
+                }
+                else
+                {
+                    // Since Unix pretty much does not have invalid characters,
+                    // the invalid name is not really invalid
+                    Assert.True(success);
+                    Assert.Equal(3, t.DirectoriesCreated.Length);
+                    Assert.Equal(dir2, t.DirectoriesCreated[2].ItemSpec);
+                }
+
                 Assert.Equal(dir, t.DirectoriesCreated[0].ItemSpec);
-                Assert.Equal(dir2, t.DirectoriesCreated[NativeMethodsShared.IsWindows ? 1 : 2].ItemSpec);
                 Assert.True
                 (
                     engine.Log.Contains
@@ -105,9 +116,13 @@ namespace Microsoft.Build.UnitTests
             }
             finally
             {
-                Directory.Delete(dir);
+                FileUtilities.DeleteWithoutTrailingBackslash(dir);
                 File.Delete(file);
-                Directory.Delete(dir2);
+                if (!NativeMethodsShared.IsWindows)
+                {
+                    File.Delete(invalid);
+                }
+                FileUtilities.DeleteWithoutTrailingBackslash(dir2);
             }
         }
 
@@ -157,7 +172,7 @@ namespace Microsoft.Build.UnitTests
             }
             finally
             {
-                Directory.Delete(dir);
+                FileUtilities.DeleteWithoutTrailingBackslash(dir);
             }
         }
 
@@ -175,7 +190,7 @@ namespace Microsoft.Build.UnitTests
             try
             {
                 FileStream fs = File.Create(file);
-                fs.Close(); //we're gonna try to delete it
+                fs.Dispose(); //we're gonna try to delete it
 
                 MakeDir t = new MakeDir();
                 MockEngine engine = new MockEngine();

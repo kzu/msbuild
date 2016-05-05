@@ -452,6 +452,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// parameters that explicitly do not match the current process. 
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyNonmatchingUsingTaskParametersLaunchTaskHost()
         {
             ITask createdTask = null;
@@ -485,6 +486,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// parameters that explicitly do not match the current process. 
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyNonmatchingTaskParametersLaunchTaskHost()
         {
             ITask createdTask = null;
@@ -516,6 +518,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// parameters that explicitly do not match the current process. 
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyNonmatchingParametersLaunchTaskHost()
         {
             ITask createdTask = null;
@@ -580,6 +583,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// explicitly instructed to launch the task host. 
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyExplicitlyLaunchTaskHostEvenIfParametersMatch1()
         {
             ITask createdTask = null;
@@ -613,6 +617,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// explicitly instructed to launch the task host. 
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void VerifyExplicitlyLaunchTaskHostEvenIfParametersMatch2()
         {
             ITask createdTask = null;
@@ -725,6 +730,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public class TaskToTestFactories
 #if FEATURE_APPDOMAIN
             : AppDomainIsolatedTask
+#else
+            : Task
 #endif
         {
             /// <summary>
@@ -748,11 +755,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// <summary>
             /// Execute the test
             /// </summary>
-#if FEATURE_APPDOMAIN
             public override bool Execute()
-#else
-            public bool Execute()
-#endif
             {
                 return true;
             }

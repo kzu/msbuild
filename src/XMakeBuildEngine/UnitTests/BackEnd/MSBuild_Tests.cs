@@ -174,7 +174,7 @@ namespace Microsoft.Build.UnitTests
             string projectContents = @"
                 <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <Target Name=`t` >
-	                    <MSBuild Projects=` @(empty) ` />
+                        <MSBuild Projects=` @(empty) ` />
                     </Target>
                 </Project>
                 ";
@@ -197,7 +197,7 @@ namespace Microsoft.Build.UnitTests
                 "SkipNonexistentProjectsMain.csproj",
                 @"<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <Target Name=`t` >
-	                    <MSBuild Projects=`this_project_does_not_exist.csproj` />
+                        <MSBuild Projects=`this_project_does_not_exist.csproj` />
                     </Target>
                 </Project>
                 ");
@@ -218,7 +218,7 @@ namespace Microsoft.Build.UnitTests
                 "SkipNonexistentProjectsMain.csproj",
                 @"<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <Target Name=`t` >
-	                    <MSBuild Projects=`this_project_does_not_exist.csproj` BuildInParallel=`true`/>
+                        <MSBuild Projects=`this_project_does_not_exist.csproj` BuildInParallel=`true`/>
                     </Target>
                 </Project>
                 ");
@@ -241,7 +241,7 @@ namespace Microsoft.Build.UnitTests
                 "SkipNonexistentProjectsMain.csproj",
                 @"<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <Target Name=`t` >
-	                    <MSBuild Projects=`this_project_does_not_exist.csproj;foo.csproj` SkipNonexistentProjects=`true` />
+                        <MSBuild Projects=`this_project_does_not_exist.csproj;foo.csproj` SkipNonexistentProjects=`true` />
                     </Target>
                 </Project>
                 ");
@@ -250,7 +250,7 @@ namespace Microsoft.Build.UnitTests
                 "foo.csproj",
                 @"<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <Target Name=`t` >
-	                    <Message Text=`Hello from foo.csproj`/>
+                        <Message Text=`Hello from foo.csproj`/>
                     </Target>
                 </Project>
                 ");
@@ -278,7 +278,7 @@ namespace Microsoft.Build.UnitTests
                 "SkipNonexistentProjectsMain.csproj",
                 @"<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <Target Name=`t` >
-	                    <MSBuild Projects=`this_project_does_not_exist.csproj;foo.csproj` SkipNonexistentProjects=`true` BuildInParallel=`true` />
+                        <MSBuild Projects=`this_project_does_not_exist.csproj;foo.csproj` SkipNonexistentProjects=`true` BuildInParallel=`true` />
                     </Target>
                 </Project>
                 ");
@@ -287,7 +287,7 @@ namespace Microsoft.Build.UnitTests
                 "foo.csproj",
                 @"<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <Target Name=`t` >
-	                    <Message Text=`Hello from foo.csproj`/>
+                        <Message Text=`Hello from foo.csproj`/>
                     </Target>
                 </Project>
                 ");
@@ -311,7 +311,7 @@ namespace Microsoft.Build.UnitTests
                 "BuildingVCProjMain.csproj",
                 @"<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <Target Name=`t` >
-	                    <MSBuild Projects=`blah.vcproj;foo.csproj` StopOnFirstFailure=`false` />
+                        <MSBuild Projects=`blah.vcproj;foo.csproj` StopOnFirstFailure=`false` />
                     </Target>
                 </Project>
                 ");
@@ -320,7 +320,7 @@ namespace Microsoft.Build.UnitTests
                 "foo.csproj",
                 @"<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <Target Name=`t` >
-	                    <Message Text=`Hello from foo.csproj`/>
+                        <Message Text=`Hello from foo.csproj`/>
                     </Target>
                 </Project>
                 ");
@@ -330,7 +330,7 @@ namespace Microsoft.Build.UnitTests
                 @"<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                     <NotWellFormedMSBuildFormatTag />
                     <Target Name=`t` >
-	                    <Message Text=`Hello from blah.vcproj`/>
+                        <Message Text=`Hello from blah.vcproj`/>
                     </Target>
                 </Project>
                 ");
@@ -344,6 +344,7 @@ namespace Microsoft.Build.UnitTests
             Assert.True(logger.FullLog.Contains(error));
         }
 
+#if FEATURE_COMPILE_IN_TESTS
         /// <summary>
         /// Regression test for bug 533369.  Calling the MSBuild task, passing in a property
         /// in the Properties parameter that has a special character in its value, such as semicolon.
@@ -444,6 +445,7 @@ namespace Microsoft.Build.UnitTests
 
             ObjectModelHelpers.AssertFileExistsInTempProjectDirectory(@"bug'533'369\Sub;Dir\binaries\ConsoleApplication1.exe");
         }
+#endif
 
         /// <summary>
         /// Check if passing different global properites via metadata works
@@ -1142,10 +1144,12 @@ namespace Microsoft.Build.UnitTests
             }
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// Verify stopOnFirstFailure with BuildInParallel override message are correctly logged when there are multiple nodes
         /// </summary>
         [Fact]
+        [Trait("Category", "mono-osx-failing")]
         public void StopOnFirstFailureandBuildInParallelMultipleNode()
         {
             string project1 = ObjectModelHelpers.CreateTempFileOnDisk(@"
@@ -1209,7 +1213,7 @@ namespace Microsoft.Build.UnitTests
                         </Project>";
 
                     MockLogger logger = new MockLogger();
-                    ProjectCollection pc = new ProjectCollection(null, new List<ILogger> { logger }, null, ToolsetDefinitionLocations.Registry | ToolsetDefinitionLocations.ConfigurationFile, 2, false);
+                    ProjectCollection pc = new ProjectCollection(null, new List<ILogger> { logger }, null, ToolsetDefinitionLocations.Default, 2, false);
                     Project p = ObjectModelHelpers.CreateInMemoryProject(pc, parentProjectContents, logger);
                     bool success = p.Build();
                     switch (i)
@@ -1264,6 +1268,7 @@ namespace Microsoft.Build.UnitTests
                 File.Delete(project2);
             }
         }
+#endif
 
         /// <summary>
         /// Test the skipping of the remaining projects. Verify the skip message is only displayed when there are projects to skip.
@@ -1303,7 +1308,7 @@ namespace Microsoft.Build.UnitTests
                 </Project>";
 
                 MockLogger logger = new MockLogger();
-                ProjectCollection pc = new ProjectCollection(null, new List<ILogger> { logger }, null, ToolsetDefinitionLocations.Registry | ToolsetDefinitionLocations.ConfigurationFile, 2, false);
+                ProjectCollection pc = new ProjectCollection(null, new List<ILogger> { logger }, null, ToolsetDefinitionLocations.Default, 2, false);
                 Project p = ObjectModelHelpers.CreateInMemoryProject(pc, parentProjectContents, logger);
                 bool success = p.Build();
 

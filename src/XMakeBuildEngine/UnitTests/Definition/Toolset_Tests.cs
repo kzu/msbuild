@@ -3,9 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.IO;
-using System.Xml;
 
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Collections;
@@ -14,7 +11,6 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.UnitTests.BackEnd;
-using Microsoft.Build.Unittest;
 using Xunit;
 
 namespace Microsoft.Build.UnitTests.Definition
@@ -203,7 +199,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 Environment.SetEnvironmentVariable("VisualStudioVersion", null);
 
                 ProjectCollection projectCollection = new ProjectCollection();
-                Toolset parentToolset = projectCollection.GetToolset(ObjectModelHelpers.MSBuildAssemblyVersion);
+                Toolset parentToolset = projectCollection.GetToolset(ObjectModelHelpers.MSBuildDefaultToolsVersion);
 
                 Toolset t = new Toolset("Fake", parentToolset.ToolsPath, null, projectCollection, null, parentToolset.OverrideTasksPath);
 

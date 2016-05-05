@@ -314,7 +314,7 @@ namespace Microsoft.Build.UnitTests.OM.Instance
                 File.Delete(file1);
                 File.Delete(file2);
                 File.Delete(file3);
-                Directory.Delete(directory);
+                FileUtilities.DeleteWithoutTrailingBackslash(directory);
             }
         }
 
@@ -840,6 +840,7 @@ namespace Microsoft.Build.UnitTests.OM.Instance
         /// Cloning inherits unless otherwise specified
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void ImmutableProjectInstance_CloneImmutableFromMutable()
         {
             var protoInstance = GetSampleProjectInstance(false /* mutable */);
@@ -860,6 +861,7 @@ namespace Microsoft.Build.UnitTests.OM.Instance
         /// Cloning inherits unless otherwise specified
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void ImmutableProjectInstance_CloneImmutableFromImmutable()
         {
             var protoInstance = GetSampleProjectInstance(true /* immutable */);
@@ -883,6 +885,7 @@ namespace Microsoft.Build.UnitTests.OM.Instance
         /// Cloning inherits unless otherwise specified
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void ImmutableProjectInstance_CloneImmutableFromImmutable2()
         {
             var protoInstance = GetSampleProjectInstance(true /* immutable */);
@@ -903,6 +906,7 @@ namespace Microsoft.Build.UnitTests.OM.Instance
         /// Cloning inherits unless otherwise specified
         /// </summary>
         [Fact]
+        [Trait("Category", "netcore-osx-failing")]
         public void ImmutableProjectInstance_CloneMutableFromMutable()
         {
             var protoInstance = GetSampleProjectInstance(false /* mutable */);

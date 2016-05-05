@@ -16,7 +16,9 @@ using System.Threading;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
+#if FEATURE_SECURITY_PERMISSIONS
 using System.Security.AccessControl;
+#endif
 using System.Security.Principal;
 #if FEATURE_SECURITY_PERMISSIONS
 using System.Security.Permissions;
@@ -219,7 +221,7 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         public void ShutdownAllNodes()
         {
-            ShutdownAllNodes(NodeProviderOutOfProc.HostHandshake, NodeProviderOutOfProc.ClientHandshake, NodeContextTerminated);
+            ShutdownAllNodes(NodeProviderOutOfProc.GetHostHandshake(ComponentHost.BuildParameters.EnableNodeReuse), NodeProviderOutOfProc.GetClientHandshake(), NodeContextTerminated);
         }
 
         #endregion

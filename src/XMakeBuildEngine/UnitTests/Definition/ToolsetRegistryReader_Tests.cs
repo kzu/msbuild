@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+#if FEATURE_WIN32_REGISTRY
 
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace Microsoft.Build.UnitTests.Definition
     /// <summary>
     /// Unit test for ToolsetRegistryReader class
     /// </summary>
+    [PlatformSpecific(Xunit.PlatformID.Windows)]
     public class ToolsetRegistryReader_Tests : IDisposable
     {
         // The registry key that is passed as the baseKey parameter to the ToolsetRegistryReader class
@@ -624,3 +626,4 @@ namespace Microsoft.Build.UnitTests.Definition
         }
     }
 }
+#endif

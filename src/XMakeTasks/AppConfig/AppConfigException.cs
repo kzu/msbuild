@@ -10,17 +10,22 @@ namespace Microsoft.Build.Tasks
     /// An exception thrown while parsing through an app.config.
     /// </summary>
     [Serializable]
-    internal class AppConfigException : System.ApplicationException
+    internal class AppConfigException :
+#if FEATURE_VARIOUS_EXCEPTIONS
+        System.ApplicationException
+#else
+        Exception
+#endif
     {
         /// <summary>
         /// The name of the app.config file.
         /// </summary>
-        private string _fileName = String.Empty;
+        private string fileName = String.Empty;
         internal string FileName
         {
             get
             {
-                return _fileName;
+                return fileName;
             }
         }
 
@@ -28,24 +33,24 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// The line number with the error. Is initialized to zero
         /// </summary>
-        private int _line;
+        private int line;
         internal int Line
         {
             get
             {
-                return _line;
+                return line;
             }
         }
 
         /// <summary>
         /// The column with the error. Is initialized to zero
         /// </summary>
-        private int _column;
+        private int column;
         internal int Column
         {
             get
             {
-                return _column;
+                return column;
             }
         }
 
@@ -60,16 +65,18 @@ namespace Microsoft.Build.Tasks
         /// <param name="inner"></param>
         public AppConfigException(string message, string fileName, int line, int column, System.Exception inner) : base(message, inner)
         {
-            _fileName = fileName;
-            _line = line;
-            _column = column;
+            this.fileName = fileName;
+            this.line = line;
+            this.column = column;
         }
 
+#if FEATURE_BINARY_SERIALIZATION
         /// <summary>
         /// Construct the exception.
         /// </summary>
         protected AppConfigException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
+#endif
     }
 }

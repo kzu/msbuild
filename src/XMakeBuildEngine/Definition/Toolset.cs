@@ -350,6 +350,20 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
+        /// Returns a copy of the list of search paths for a MSBuildExtensionsPath* property kind.
+        /// </summary>
+        internal IList<string> GetMSBuildExtensionsPathSearchPathsFor(MSBuildExtensionsPathReferenceKind refKind)
+        {
+            IList<string> paths;
+            if (MSBuildExtensionsPathSearchPathsTable != null && MSBuildExtensionsPathSearchPathsTable.TryGetValue(refKind, out paths))
+            {
+                return new List<string>(paths);
+            }
+
+            return new List<string>();
+        }
+
+        /// <summary>
         /// Name of this toolset
         /// </summary>
         public string ToolsVersion
@@ -490,6 +504,7 @@ namespace Microsoft.Build.Evaluation
         {
             get
             {
+#if FEATURE_WIN32_REGISTRY
                 if (!NativeMethodsShared.IsWindows)
                 {
                     return false;
@@ -543,6 +558,9 @@ namespace Microsoft.Build.Evaluation
                 }
 
                 return s_dev10IsInstalled.Value;
+#else
+                return false;
+#endif
             }
         }
 
@@ -560,6 +578,14 @@ namespace Microsoft.Build.Evaluation
         internal string DefaultOverrideToolsVersion
         {
             get { return _defaultOverrideToolsVersion; }
+        }
+
+        /// <summary>
+        /// Map of MSBuildExtensionsPath properties to their list of fallback search paths
+        /// </summary>
+        internal Dictionary<MSBuildExtensionsPathReferenceKind, IList<string>> MSBuildExtensionsPathSearchPathsTable
+        {
+            get; set;
         }
 
         /// <summary>

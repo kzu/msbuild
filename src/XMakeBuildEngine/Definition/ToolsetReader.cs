@@ -86,14 +86,19 @@ namespace Microsoft.Build.Evaluation
         /// allows you to specify which of the registry and configuration file to
         /// read from by providing ToolsetInitialization
         /// </summary>
+#if FEATURE_WIN32_REGISTRY || FEATURE_SYSTEM_CONFIGURATION
         internal static string ReadAllToolsets(Dictionary<string, Toolset> toolsets, PropertyDictionary<ProjectPropertyInstance> environmentProperties, PropertyDictionary<ProjectPropertyInstance> globalProperties, ToolsetDefinitionLocations locations)
         {
-            return ReadAllToolsets(toolsets, null,
+            return ReadAllToolsets(toolsets,
+#if FEATURE_WIN32_REGISTRY
+                null,
+#endif
 #if FEATURE_SYSTEM_CONFIGURATION
                 null,
 #endif
                 environmentProperties, globalProperties, locations);
         }
+#endif
 
         /// <summary>
         /// Gathers toolset data from the registry and configuration file, if any.
@@ -102,7 +107,9 @@ namespace Microsoft.Build.Evaluation
         internal static string ReadAllToolsets
             (
             Dictionary<string, Toolset> toolsets,
+#if FEATURE_WIN32_REGISTRY
             ToolsetRegistryReader registryReader,
+#endif
 #if FEATURE_SYSTEM_CONFIGURATION
             ToolsetConfigurationReader configurationReader,
 #endif
@@ -154,6 +161,7 @@ namespace Microsoft.Build.Evaluation
 
             if ((locations & ToolsetDefinitionLocations.Registry) == ToolsetDefinitionLocations.Registry)
             {
+#if FEATURE_WIN32_REGISTRY
                 if (NativeMethodsShared.IsWindows || registryReader != null)
                 {
                     var registryReaderToUse = registryReader
@@ -171,6 +179,7 @@ namespace Microsoft.Build.Evaluation
                         out defaultOverrideToolsVersionFromRegistry);
                 }
                 else
+#endif
                 {
                     var currentDir = FileUtilities.CurrentExecutableDirectory.TrimEnd(Path.DirectorySeparatorChar);
                     var props = new PropertyDictionary<ProjectPropertyInstance>();
@@ -400,6 +409,11 @@ namespace Microsoft.Build.Evaluation
         protected abstract IEnumerable<ToolsetPropertyDefinition> GetSubToolsetPropertyDefinitions(string toolsVersion, string subToolsetVersion);
 
         /// <summary>
+        /// Returns a map of MSBuildExtensionsPath* property names/kind to list of search paths
+        /// </summary>
+        protected abstract Dictionary<MSBuildExtensionsPathReferenceKind, IList<string>> GetMSBuildExtensionPathsSearchPathsTable(string toolsVersion, string os);
+
+        /// <summary>
         /// Reads all the toolsets and populates the given ToolsetCollection with them
         /// </summary>
         private void ReadEachToolset
@@ -502,6 +516,7 @@ namespace Microsoft.Build.Evaluation
             try
             {
                 toolset = new Toolset(toolsVersion.Name, toolsPath == null ? binPath : toolsPath, properties, _environmentProperties, globalProperties, subToolsets, MSBuildOverrideTasksPath, DefaultOverrideToolsVersion);
+                toolset.MSBuildExtensionsPathSearchPathsTable = GetMSBuildExtensionPathsSearchPathsTable(toolsVersion.Name, NativeMethodsShared.GetOSNameForExtensionsPath());
             }
             catch (ArgumentException e)
             {
@@ -749,4 +764,69 @@ namespace Microsoft.Build.Evaluation
             return path;
         }
     }
+
+    /// <summary>
+    /// struct representing a reference to MSBuildExtensionsPath* property
+    /// </summary>
+    internal struct MSBuildExtensionsPathReferenceKind
+    {
+
+        /// <summary>
+        /// MSBuildExtensionsPathReferenceKind instance for property named "MSBuildExtensionsPath"
+        /// </summary>
+        public static readonly MSBuildExtensionsPathReferenceKind Default = new MSBuildExtensionsPathReferenceKind("MSBuildExtensionsPath");
+
+        /// <summary>
+        /// MSBuildExtensionsPathReferenceKind instance for property named "MSBuildExtensionsPath32"
+        /// </summary>
+        public static readonly MSBuildExtensionsPathReferenceKind Path32 = new MSBuildExtensionsPathReferenceKind("MSBuildExtensionsPath32");
+
+        /// <summary>
+        /// MSBuildExtensionsPathReferenceKind instance for property named "MSBuildExtensionsPath64"
+        /// </summary>
+        public static readonly MSBuildExtensionsPathReferenceKind Path64 = new MSBuildExtensionsPathReferenceKind("MSBuildExtensionsPath64");
+
+        /// <summary>
+        /// MSBuildExtensionsPathReferenceKind instance representing no MSBuildExtensionsPath* property reference
+        /// </summary>
+        public static readonly MSBuildExtensionsPathReferenceKind None = new MSBuildExtensionsPathReferenceKind(String.Empty);
+
+        private MSBuildExtensionsPathReferenceKind(string value)
+        {
+            StringRepresentation = value;
+        }
+
+        /// <summary>
+        /// String representation of the property reference - eg. "MSBuildExtensionsPath32"
+        /// </summary>
+        public string StringRepresentation { get; private set; }
+
+        /// <summary>
+        /// Returns the corresponding property name - eg. "$(MSBuildExtensionsPath32)"
+        /// </summary>
+        public string MSBuildPropertyName => String.Format($"$({StringRepresentation})");
+
+        /// <summary>
+        /// Tries to find a reference to MSBuildExtensionsPath* property in the given string
+        /// </summary>
+        public static MSBuildExtensionsPathReferenceKind FindIn(string expression)
+        {
+            if (expression.IndexOf("$(MSBuildExtensionsPath)") >= 0)
+            {
+                return MSBuildExtensionsPathReferenceKind.Default;
+            }
+
+            if (expression.IndexOf("$(MSBuildExtensionsPath32)") >= 0)
+            {
+                return MSBuildExtensionsPathReferenceKind.Path32;
+            }
+
+            if (expression.IndexOf("$(MSBuildExtensionsPath64)") >= 0)
+            {
+                return MSBuildExtensionsPathReferenceKind.Path64;
+            }
+
+            return MSBuildExtensionsPathReferenceKind.None;
+        }
+     }
 }

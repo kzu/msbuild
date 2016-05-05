@@ -190,7 +190,7 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// If a property is expanded but evaluates to null then it is consisered to be un-initialized. 
+        /// If a property is expanded but evaluates to null then it is considered to be un-initialized.
         /// We want to keep track of these properties so that we can warn if the property gets set later on.
         /// </summary>
         internal UsedUninitializedProperties UsedUninitializedProperties
@@ -970,6 +970,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             propertyValue = String.Empty;
                         }
+#if FEATURE_WIN32_REGISTRY
                         else if ((expression.Length - (propertyStartIndex + 2)) > 9 && tryExtractRegistryFunction && s_invariantCompareInfo.IndexOf(expression, "Registry:", propertyStartIndex + 2, 9, CompareOptions.OrdinalIgnoreCase) == propertyStartIndex + 2)
                         {
                             propertyBody = expression.Substring(propertyStartIndex + 2, propertyEndIndex - propertyStartIndex - 2);
@@ -978,6 +979,7 @@ namespace Microsoft.Build.Evaluation
                             // This is a registry reference, like $(Registry:HKEY_LOCAL_MACHINE\Software\Vendor\Tools@TaskLocation)
                             propertyValue = ExpandRegistryValue(propertyBody, elementLocation);
                         }
+#endif
 
                         // Compat hack: as a special case, $(HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory) should return String.Empty
                         // In this case, tryExtractRegistryFunction will be false. Note that very few properties are exactly 77 chars, so this check should be fast.
@@ -1019,7 +1021,8 @@ namespace Microsoft.Build.Evaluation
                 // If we have only a single result, then just return it
                 if (results == null && expression.Length == sourceIndex)
                 {
-                    return lastResult == null ? null : FileUtilities.MaybeAdjustFilePath(lastResult.ToString());
+                    var resultString = lastResult as string;
+                    return resultString != null ? FileUtilities.MaybeAdjustFilePath(resultString) : lastResult;
                 }
                 else
                 {
@@ -1353,6 +1356,7 @@ namespace Microsoft.Build.Evaluation
                 return value;
             }
 
+#if FEATURE_WIN32_REGISTRY
             /// <summary>
             /// Given a string like "Registry:HKEY_LOCAL_MACHINE\Software\Vendor\Tools@TaskLocation", return the value at that location
             /// in the registry. If the value isn't found, returns String.Empty.
@@ -1441,6 +1445,7 @@ namespace Microsoft.Build.Evaluation
 
                 return result;
             }
+#endif
         }
 
         /// <summary>
@@ -2828,58 +2833,6 @@ namespace Microsoft.Build.Evaluation
             }
 
 #if !FEATURE_TYPE_INVOKEMEMBER
-            private MethodInfo BindMethod(object[] args, bool throwOnError = false)
-            {
-                StringComparison nameComparison =
-                    ((_bindingFlags & BindingFlags.IgnoreCase) == BindingFlags.IgnoreCase) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-
-                 var matchingMethods = _objectType.GetMethods(_bindingFlags)
-                                    .Where(method => method.Name.Equals(_name, nameComparison))
-                                    .Where(method =>
-                                    {
-                                        ParameterInfo[] parameters = method.GetParameters();
-                                        if (parameters.Length != args.Length)
-                                        {
-                                            return false;
-                                        }
-
-                                        for (int i = 0; i < parameters.Length; i++)
-                                        {
-                                            if (args[i] == null)
-                                            {
-                                                //  Can't bind null to a value type
-                                                if (parameters[i].ParameterType.GetTypeInfo().IsValueType)
-                                                {
-                                                    return false;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                if (!parameters[i].ParameterType.IsAssignableFrom(args[i].GetType()))
-                                                {
-                                                    return false;
-                                                }
-                                            }
-                                        }
-
-                                        return true;
-                                    }).ToArray();
-
-                if (matchingMethods.Length == 0)
-                {
-                    throw new MissingMethodException(_name);
-                }
-                else if (matchingMethods.Length == 1)
-                {
-                    
-                    return matchingMethods[0];
-                }
-                else
-                {
-                    throw new AmbiguousMatchException(_name);
-                }
-            }
-
             private MemberInfo BindFieldOrProperty()
             {
                 StringComparison nameComparison =
@@ -2986,7 +2939,7 @@ namespace Microsoft.Build.Evaluation
                         args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
                     }
 
-                    // If we've been asked for and instance to be constructed, then we
+                    // If we've been asked to construct an instance, then we
                     // need to locate an appropriate constructor and invoke it
                     if (String.Equals("new", _name, StringComparison.OrdinalIgnoreCase))
                     {
@@ -3005,9 +2958,7 @@ namespace Microsoft.Build.Evaluation
 #else
                             if (_invokeType == InvokeType.InvokeMethod)
                             {
-                                MethodInfo matchingMethod = BindMethod(args, throwOnError: true);
-
-                                functionResult = matchingMethod.Invoke(objectInstance, args);                                
+                                functionResult = _objectType.InvokeMember(_name, _bindingFlags, objectInstance, args, null, CultureInfo.InvariantCulture, null);
                             }
                             else if (_invokeType == InvokeType.GetPropertyOrField)
                             {
@@ -3254,7 +3205,17 @@ namespace Microsoft.Build.Evaluation
                 Assembly candidateAssembly = Assembly.LoadWithPartialName(candidateAssemblyName);
 #pragma warning restore 618
 #else
-                Assembly candidateAssembly = Assembly.Load(new AssemblyName(candidateAssemblyName));
+                Assembly candidateAssembly = null;
+                try
+                {
+                    candidateAssembly = Assembly.Load(new AssemblyName(candidateAssemblyName));
+                }
+                catch (FileNotFoundException)
+                {
+                    // Swallow the error; LoadWithPartialName returned null when the partial name
+                    // was not found but Load throws.  Either way we'll provide a nice "couldn't
+                    // resolve this" error later.
+                }
 #endif
 
                 if (candidateAssembly != null)
@@ -3631,13 +3592,11 @@ namespace Microsoft.Build.Evaluation
                 MethodBase memberInfo = null;
 
                 // First let's try for a method where all arguments are strings..
-#if FEATURE_TYPE_INVOKEMEMBER
                 Type[] types = new Type[_arguments.Length];
                 for (int n = 0; n < _arguments.Length; n++)
                 {
                     types[n] = typeof(string);
                 }
-#endif
 
                 if (isConstructor)
                 {
@@ -3651,15 +3610,7 @@ namespace Microsoft.Build.Evaluation
                 }
                 else
                 {
-#if FEATURE_TYPE_INVOKEMEMBER
                     memberInfo = _objectType.GetMethod(_name, bindingFlags, null, types, null);
-#else
-                    StringComparison nameComparison =
-                        ((_bindingFlags & BindingFlags.IgnoreCase) == BindingFlags.IgnoreCase) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-                    memberInfo = _objectType.GetMethods(bindingFlags)
-                        .Where(method => method.Name.Equals(_name, nameComparison) && ParametersBindToNStringArguments(method.GetParameters(), args.Length))
-                        .FirstOrDefault();
-#endif
                 }
 
                 // If we didn't get a match on all string arguments,

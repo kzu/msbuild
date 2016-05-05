@@ -324,7 +324,7 @@ namespace Microsoft.Build.UnitTests
         /// However, it's a situation where the project author doesn't have control over the
         /// property value and so he can't escape it himself.
         /// </summary>
-        [Fact]
+        [Fact(Skip = "https://github.com/Microsoft/msbuild/issues/259")]
         public void PropertyOverridesContainSemicolon()
         {
             ObjectModelHelpers.DeleteTempProjectDirectory();
@@ -963,6 +963,7 @@ namespace Microsoft.Build.UnitTests
             }
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// Verify stopOnFirstFailure with BuildInParallel override message are correctly logged when there are multiple nodes
         /// </summary>
@@ -1062,6 +1063,7 @@ namespace Microsoft.Build.UnitTests
                 File.Delete(project2);
             }
         }
+#endif
 
         /// <summary>
         /// Test the skipping of the remaining projects. Verify the skip message is only displayed when there are projects to skip.
