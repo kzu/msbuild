@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>MSBuild.Mono</id>
+    <version>14.1.0.0</version>
+    <title>Microsoft Build Engine</title>
+    <authors>Microsoft</authors>
+    <owners>Microsoft</owners>
+    <licenseUrl>https://github.com/Microsoft/msbuild/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/Microsoft/msbuild</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>The Microsoft Build Engine is a platform for building applications.</description>
+    <summary>The Microsoft Build Engine, which is also known as MSBuild, provides an XML schema for a project file that controls how the build platform processes and builds software. Visual Studio uses MSBuild, but MSBuild does not depend on Visual Studio. By invoking msbuild.exe on your project or solution file, you can orchestrate and build products in environments where Visual Studio isn't installed.</summary>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>Copyright &#169; Microsoft Corporation</copyright>
+    <tags>Build MSBuild</tags>
+    <!-- references>
+      <reference file="Microsoft.Build.dll" />
+      <reference file="Microsoft.Build.Framework.dll" />
+      <reference file="Microsoft.Build.Tasks.Core.dll" />
+      <reference file="Microsoft.Build.Utilities.Core.dll" />
+    </references>
+    <dependencies>
+      <dependency id="Microsoft.Tpl.Dataflow" version="4.5.24" />
+    </dependencies-->
+  </metadata>
+  <files>
+    <file src="./Microsoft.Build.dll" target="tools" />
+    <file src="./Microsoft.Build.dll.mdb" target="tools" />
+    <file src="./Microsoft.Build.Framework.dll" target="tools" />
+    <file src="./Microsoft.Build.Framework.dll.mdb" target="tools" />
+    <file src="./Microsoft.Build.Tasks.Core.dll" target="tools" />
+    <file src="./Microsoft.Build.Tasks.Core.dll.mdb" target="tools" />
+    <file src="./Microsoft.Build.Tasks.CodeAnalysis.dll" target="tools" />
+    <file src="./Microsoft.Build.Utilities.Core.dll" target="tools" />
+    <file src="./Microsoft.Build.Utilities.Core.dll.mdb" target="tools" />
+    <file src="./Microsoft.CodeAnalysis.dll" target="tools" />
+    <file src="./Microsoft.CodeAnalysis.CSharp.dll" target="tools" />
+    <file src="./MSBuild.exe" target="tools" />
+    <file src="./MSBuild.exe.mdb" target="tools" />
+    <file src="./MSBuild.exe.config" target="tools" />
+    <file src="./Microsoft.Common.overridetasks" target="tools" />
+    <file src="./Microsoft.Common.tasks" target="tools" />
+    <!-- file src="./Microsoft.Common.CurrentVersion.targets" target="tools" />
+    <file src="./Microsoft.Common.targets" target="tools" />
+    <file src="./Microsoft.CSharp.Core.targets" target="tools" />
+    <file src="./Microsoft.CSharp.CurrentVersion.targets" target="tools" />
+    <file src="./Microsoft.CSharp.targets" target="tools" />
+    <file src="./Microsoft.Data.Entity.Shim.targets" target="tools" />
+    <file src="./Microsoft.NETFramework.CurrentVersion.targets" target="tools" />
+    <file src="./Microsoft.NETFramework.targets" target="tools" />
+    <file src="./Microsoft.ServiceModel.Shim.targets" target="tools" />
+    <file src="./Microsoft.VisualBasic.Core.targets" target="tools" />
+    <file src="./Microsoft.VisualBasic.CurrentVersion.targets" target="tools" />
+    <file src="./Microsoft.VisualBasic.targets" target="tools" />
+    <file src="./Microsoft.WinFx.Shim.targets" target="tools" />
+    <file src="./Microsoft.WorkflowBuildExtensions.Shim.targets" target="tools" />
+    <file src="./Microsoft.Xaml.Shim.targets" target="tools" / -->
+    <file src="./Microsoft.NETFramework.props" target="tools" />
+    <file src="./Microsoft.NETFramework.CurrentVersion.props" target="tools" />
+    <file src="./Microsoft.VisualStudioVersion.v11.Common.props" target="tools" />
+    <file src="./Microsoft.VisualStudioVersion.v12.Common.props" target="tools" />
+    <file src="./Microsoft.VisualStudioVersion.v14.Common.props" target="tools" />
+    <!-- file src="./Workflow.Shim.Targets" target="tools" />
+    <file src="./Workflow.VisualBasic.Shim.Targets" target="tools" /-->
+    <file src="Extensions/**/*" target="tools/Extensions" />
+
+    <!-- file src="./System.Threading.Tasks.Dataflow.dll" target="tools" /-->
+    <file src="System.*.dll*" target="tools" />
+    <file src="../../../msbuild" target="tools/" />
+    <file src="*.targets" target="tools" />
+  </files>
+</package>
